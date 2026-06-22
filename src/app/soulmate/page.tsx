@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { getTeam } from "@/lib/data/teams";
 import { oddsFor } from "@/lib/forecast";
 import { matchTeams, TEAM_VIBES, AXES, type Vibe, type Axis } from "@/lib/match/vibes";
+import { personaFor } from "@/lib/match/persona";
 import { pct } from "@/lib/format";
 import { CONF_META } from "@/lib/format";
 
@@ -61,19 +62,6 @@ const QUIZ: Q[] = [
   },
 ];
 
-// Fun persona revealed before the team — based on your dominant trait.
-const PERSONA: Record<Axis, { name: string; emoji: string; line: string }> = {
-  glory: { name: "The Frontrunner", emoji: "👑", line: "You back winners — and you back them loud." },
-  firepower: { name: "The Thrill-Seeker", emoji: "🎆", line: "Boring is the only thing you're scared of." },
-  grit: { name: "The Ride-or-Die", emoji: "🛡️", line: "Loyal, stubborn, and proud of both." },
-  fairytale: { name: "The Hopeless Romantic", emoji: "🌈", line: "You believe in magic and lost causes." },
-  heartbreak: { name: "The Drama Magnet", emoji: "🎭", line: "You don't watch for fun. You watch to FEEL." },
-};
-
-function personaFor(v: Vibe) {
-  const top = [...AXES].sort((a, b) => v[b] - v[a])[0];
-  return PERSONA[top];
-}
 
 const AXIS_LABEL: Record<Axis, string> = {
   glory: "Glory", firepower: "Firepower", grit: "Grit", fairytale: "Fairytale", heartbreak: "Heartbreak",
@@ -216,14 +204,22 @@ function Result({
   const conf = CONF_META[team.confederation];
   const vibe = TEAM_VIBES[top.teamId];
   const persona = personaFor(userVibe);
+  const params = `team=${top.teamId}&persona=${persona.key}&pct=${top.pctMatch}`;
+  const cardUrl = `/api/card?${params}`;
+  const shareUrl = `/soulmate/share?${params}`;
 
   async function share() {
-    const text = `🔮 I'm ${persona.emoji} ${persona.name} — and my 2026 World Cup soulmate is ${team.flag} ${team.name} (${top.pctMatch}% match)! Find yours at ORACLE '26.`;
+    const url = typeof window !== "undefined" ? window.location.origin + shareUrl : shareUrl;
+    const text = `🔮 I'm ${persona.emoji} ${persona.name} — my 2026 World Cup soulmate is ${team.flag} ${team.name} (${top.pctMatch}% match)!`;
     try {
-      await navigator.clipboard.writeText(text);
-      alert("Copied your result — go paste it and brag.");
+      if (navigator.share) {
+        await navigator.share({ title: "My World Cup Soulmate", text, url });
+      } else {
+        await navigator.clipboard.writeText(`${text} ${url}`);
+        alert("Link copied — go paste it and brag.");
+      }
     } catch {
-      /* ignore */
+      /* user cancelled share */
     }
   }
 
@@ -347,13 +343,26 @@ function Result({
         </div>
       </div>
 
-      <div className="flex gap-3 mt-6 justify-center">
+      <div className="flex flex-wrap gap-3 mt-6 justify-center">
         <button onClick={share} className="px-5 py-2.5 rounded-xl bg-emerald text-black font-bold text-sm hover:brightness-110 transition">
           Share my soulmate
         </button>
+        <a
+          href={cardUrl}
+          download={`world-cup-soulmate-${top.teamId}.png`}
+          className="px-5 py-2.5 rounded-xl border border-emerald/40 text-emerald font-semibold text-sm hover:bg-emerald/10 transition"
+        >
+          ⬇ Download my card
+        </a>
         <button onClick={onRestart} className="px-5 py-2.5 rounded-xl border border-line text-sm hover:text-white hover:border-white/30 transition">
           Take it again
         </button>
+      </div>
+
+      <div className="text-center mt-4">
+        <a href="/how-it-works" className="text-xs text-mute hover:text-emerald transition">
+          🤓 Wait, how did you match me? See the math →
+        </a>
       </div>
     </div>
   );

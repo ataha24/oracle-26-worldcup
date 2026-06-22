@@ -8,6 +8,7 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://oracle-26-worldcup.vercel.app"),
   title: "ORACLE '26 — The World Cup 2026 Prediction Engine",
   description:
     "A live Monte-Carlo forecast of the 2026 FIFA World Cup. Real results, 50,000 simulated tournaments, title odds, group projections, the full bracket, and a head-to-head predictor.",

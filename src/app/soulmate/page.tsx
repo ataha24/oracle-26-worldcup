@@ -6,7 +6,6 @@ import { matchTeams, rankTeams, AXES, type Axis, type Vibe } from "@/lib/match/v
 import { fanIdentity } from "@/lib/match/persona";
 import { QUESTIONS, leanFromAnswers, type Option } from "@/lib/match/quiz";
 import { FanReport, encodeVibe, AXIS_COLOR, AXIS_LABEL } from "@/components/FanReport";
-import { FanWrapped } from "@/components/FanWrapped";
 import { shareMessage } from "@/lib/data/shareCopy";
 
 // short, fun reaction shown the instant you pick — by the option's dominant trait
@@ -285,7 +284,6 @@ function Result({
   const top = matches[0];
   const team = getTeam(top.teamId);
   const me = fanIdentity(userVibe);
-  const [wrapped, setWrapped] = useState(false);
   const params = `team=${top.teamId}&persona=${me.key}&t2=${me.secondKey}&pct=${top.pctMatch}&v=${encodeVibe(userVibe)}`;
   const cardUrl = `/api/card?${params}`;
   const shareUrl = `/soulmate/share?${params}`;
@@ -315,8 +313,6 @@ function Result({
 
   return (
     <div className="rise">
-      {wrapped && <FanWrapped userVibe={userVibe} onClose={() => setWrapped(false)} />}
-
       {/* confetti */}
       <div className="relative h-0">
         {["🎉", "⚽", "✨", "🎊", "🏆", "💚", "✨", "⚽"].map((e, i) => (
@@ -334,20 +330,9 @@ function Result({
         ))}
       </div>
 
-      {/* play your wrapped — the headline interactive moment */}
-      <button
-        onClick={() => setWrapped(true)}
-        className="w-full mb-4 py-3 rounded-2xl font-bold text-black bg-gradient-to-r from-emerald via-cyan to-violet hover:brightness-110 transition shadow-[0_0_40px_-10px_var(--color-cyan)]"
-      >
-        ▶ Play your Fan Wrapped
-      </button>
-
       <FanReport userVibe={userVibe} />
 
       <div className="flex flex-wrap gap-3 mt-6 justify-center">
-        <button onClick={() => setWrapped(true)} className="px-5 py-2.5 rounded-xl border border-cyan/40 text-cyan font-semibold text-sm hover:bg-cyan/10 transition">
-          ▶ Replay Wrapped
-        </button>
         <button onClick={share} className="px-5 py-2.5 rounded-xl bg-emerald text-black font-bold text-sm hover:brightness-110 transition">
           Share my Fan ID
         </button>

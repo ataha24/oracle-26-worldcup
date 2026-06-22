@@ -174,11 +174,16 @@ const AXIS_REASON: Record<Axis, (teamName: string) => string> = {
   heartbreak: (n) => `${n} will break your heart in the most beautiful way — glory always feels one game away.`,
 };
 
+// Map a raw affinity (correlation, ~0.45–1.0 in practice) to a friendly match %.
+// Based on the ACTUAL strength of fit — NOT rank — so the top match isn't always
+// pinned at 99: decisive, coherent answers score high; scattered ones score lower.
+function affinityToPct(aff: number): number {
+  const t = Math.max(0, Math.min(1, (aff - 0.45) / 0.55));
+  return Math.max(58, Math.min(99, Math.round(62 + 36 * Math.pow(t, 1.5))));
+}
+
 export function matchTeams(weights: Vibe, topN = 3): MatchResult[] {
   const ranked = rankTeams(weights);
-  const smax = ranked[0].score;
-  const smin = ranked[ranked.length - 1].score;
-  const span = smax - smin || 1;
 
   return ranked.slice(0, topN).map(({ teamId, score }) => {
     // a team's DEFINING traits = where it's most distinctive (z-score), not its
@@ -198,7 +203,7 @@ export function matchTeams(weights: Vibe, topN = 3): MatchResult[] {
     return {
       teamId,
       score,
-      pctMatch: Math.max(60, Math.min(99, Math.round(70 + 29 * ((score - smin) / span)))),
+      pctMatch: affinityToPct(affinity(weights, teamId)),
       topAxes,
       reasons,
       nextOpponentId,

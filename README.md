@@ -1,36 +1,71 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🔮 ORACLE '26 — The World Cup 2026 Prediction Engine
 
-## Getting Started
+A live, probabilistic forecast of the **2026 FIFA World Cup** (Canada · Mexico · USA).
+Real results are locked in; every match still to be played is simulated **50,000 times**
+to answer one question: _who lifts the trophy?_
 
-First, run the development server:
+This is not a hand-tuned bracket. It's a genuine simulation engine:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+team ratings (Elo)  →  expected goals (Poisson)  →  full tournament (Monte Carlo)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## What's inside
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Page          | What it does |
+| ------------- | ------------ |
+| **Forecast**  | Title-race podium, top-16 odds board, model insights (group of death, dark horses, surest qualifier). |
+| **Groups**    | All 12 live group tables from real results, each team's qualification probability, and model calls on every remaining fixture. |
+| **Bracket**   | A heatmap of every team's odds to survive each knockout round — computed on the **official** 2026 bracket (matches 73–104), so paths matter, not just strength. |
+| **Predictor** | Pick any two of the 48 teams for a full Poisson breakdown: win/draw/loss, expected goals, a scoreline-probability grid, BTTS, clean sheets, and knockout survival. |
+| **Teams**     | All 48 nations with ratings, history, key players and live odds; filter by confederation. |
+| **Oracle**    | Ask any World Cup question in plain English — answered instantly from the engine (no API key required). |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## The model
 
-## Learn More
+- **Elo → win expectancy & goal supremacy.** Each team carries a World-Football-Elo-style
+  rating (`src/lib/data/teams.ts`). A rating gap maps to an expected goal difference, with a
+  home-crowd edge for the three co-hosts.
+- **Poisson scoreline distribution.** The supremacy and an average goal environment give each
+  side an expected-goals rate; a Poisson grid yields every scoreline probability and everything
+  derived from it (`src/lib/engine/match.ts`).
+- **Monte Carlo tournament.** Completed results are fixed; unplayed group matches are sampled,
+  the 8 best third-placed teams are slotted by FIFA's allocation rules, and the official bracket
+  is resolved tie by tie — repeated 50,000 times (`src/lib/engine/simulate.ts`).
 
-To learn more about Next.js, take a look at the following resources:
+## Data & honesty
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Groups, fixtures, and results** are real, sourced from FIFA / Wikipedia / ESPN, current
+  through the date in `src/lib/data/results.ts` (`LAST_UPDATED`).
+- **No live scores are fabricated.** When new matches finish, add them to `RESULTS` and
+  regenerate the forecast.
+- **Ratings are curated approximations** of pre-tournament strength — the engine's one
+  modelling assumption, and the only thing you'd tune to disagree with it.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Keeping it current
 
-## Deploy on Vercel
+```bash
+# 1. add finished matches to src/lib/data/results.ts (RESULTS) and bump LAST_UPDATED
+# 2. regenerate the precomputed forecast:
+npm run forecast
+# 3. sanity-check the engine output:
+npm run engine:test
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Develop
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm install
+npm run dev      # http://localhost:3000
+npm run build    # production build (fully static)
+```
+
+## Optional: natural-language Oracle via LLM
+
+The Oracle runs entirely on the deterministic engine by default. To layer a full
+natural-language model on top, set an `AI_GATEWAY_API_KEY` (or `ANTHROPIC_API_KEY`) and wire
+the AI SDK to call the engine functions in `src/lib/oracle/answer.ts` as tools.
+
+---
+
+_Not affiliated with FIFA. A probabilistic toy built for the love of the game._

@@ -15,51 +15,65 @@ interface Q {
 
 const QUIZ: Q[] = [
   {
-    q: "What makes you leap off the couch?",
+    q: "Pick your perfect vacation.",
     options: [
-      { emoji: "🏆", label: "A team that just WINS, every single time", w: { glory: 1 } },
-      { emoji: "🐣", label: "A total nobody pulling off the impossible", w: { fairytale: 1 } },
-      { emoji: "⚽", label: "Goals. Loads and loads of goals.", w: { firepower: 1 } },
-      { emoji: "💔", label: "Heartbreak — I'm here to suffer, honestly", w: { heartbreak: 1 } },
+      { emoji: "🏝️", label: "Five-star resort, top-tier everything", w: { glory: 1 } },
+      { emoji: "🎒", label: "Backpacking somewhere nobody's heard of", w: { fairytale: 1 } },
+      { emoji: "🎢", label: "Theme park — ride everything twice", w: { firepower: 1 } },
+      { emoji: "🏔️", label: "Remote cabin, just you vs. nature", w: { grit: 1 } },
     ],
   },
   {
-    q: "Your dream Friday night is…",
+    q: "It's movie night. You're putting on…",
     options: [
-      { emoji: "🎉", label: "A wild party where anything can happen", w: { firepower: 1, fairytale: 0.5 } },
-      { emoji: "🧊", label: "Cool, calm, completely in command", w: { grit: 0.7, glory: 1 } },
-      { emoji: "🎭", label: "Edge-of-your-seat, nail-biting drama", w: { heartbreak: 1 } },
-      { emoji: "🛡️", label: "Lock the doors — nobody gets past us", w: { grit: 1 } },
+      { emoji: "🦸", label: "A blockbuster where the hero wins", w: { glory: 1 } },
+      { emoji: "🐢", label: "An underdog sports movie (you'll cry)", w: { fairytale: 1 } },
+      { emoji: "💥", label: "Nonstop action and explosions", w: { firepower: 1 } },
+      { emoji: "🥀", label: "A devastating tragic romance", w: { heartbreak: 1 } },
     ],
   },
   {
-    q: "Pick your main character.",
+    q: "Your role in the group chat is…",
     options: [
-      { emoji: "🌟", label: "The untouchable global superstar", w: { glory: 1 } },
-      { emoji: "🪄", label: "The teenage wonderkid nobody's heard of", w: { fairytale: 1, firepower: 0.5 } },
-      { emoji: "🧓", label: "The legend on one last glorious ride", w: { heartbreak: 1, glory: 0.5 } },
-      { emoji: "🥅", label: "The unstoppable goal machine", w: { firepower: 1 } },
+      { emoji: "👑", label: "The main character, obviously", w: { glory: 1 } },
+      { emoji: "🌈", label: "The relentless optimist", w: { fairytale: 1 } },
+      { emoji: "🎉", label: "The chaos starter", w: { firepower: 1 } },
+      { emoji: "🫂", label: "The ride-or-die who never flakes", w: { grit: 1 } },
     ],
   },
   {
-    q: "How do you take your football?",
+    q: "Be honest — your toxic trait is…",
     options: [
-      { emoji: "😤", label: "Ruthless and dominant", w: { glory: 1, grit: 0.5 } },
-      { emoji: "🎢", label: "Chaotic, end-to-end, scoreline be damned", w: { firepower: 1 } },
-      { emoji: "🥹", label: "Emotional and against all odds", w: { fairytale: 1, heartbreak: 0.6 } },
-      { emoji: "🧱", label: "Gritty, hard-fought, a precious 1–0", w: { grit: 1 } },
+      { emoji: "😤", label: "“I have to win. At everything.”", w: { glory: 1 } },
+      { emoji: "🥹", label: "“I fall for a lost cause every time.”", w: { fairytale: 1, heartbreak: 0.6 } },
+      { emoji: "🙉", label: "“I'm allergic to anything boring.”", w: { firepower: 1 } },
+      { emoji: "🧱", label: "“I never give up. Even when I should.”", w: { grit: 1 } },
     ],
   },
   {
-    q: "Finish the sentence: “I want to feel…”",
+    q: "You want this World Cup to make you feel…",
     options: [
-      { emoji: "🥇", label: "…like a winner.", w: { glory: 1 } },
-      { emoji: "🎆", label: "…entertained, every single minute.", w: { firepower: 1 } },
-      { emoji: "🫶", label: "…part of a fairytale.", w: { fairytale: 1 } },
-      { emoji: "😭", label: "…everything, all at once.", w: { heartbreak: 1, firepower: 0.5 } },
+      { emoji: "🥇", label: "Like a winner", w: { glory: 1 } },
+      { emoji: "🎆", label: "Endlessly entertained", w: { firepower: 1 } },
+      { emoji: "🫶", label: "Part of a fairytale", w: { fairytale: 1 } },
+      { emoji: "😭", label: "Everything, all at once", w: { heartbreak: 1, firepower: 0.5 } },
     ],
   },
 ];
+
+// Fun persona revealed before the team — based on your dominant trait.
+const PERSONA: Record<Axis, { name: string; emoji: string; line: string }> = {
+  glory: { name: "The Frontrunner", emoji: "👑", line: "You back winners — and you back them loud." },
+  firepower: { name: "The Thrill-Seeker", emoji: "🎆", line: "Boring is the only thing you're scared of." },
+  grit: { name: "The Ride-or-Die", emoji: "🛡️", line: "Loyal, stubborn, and proud of both." },
+  fairytale: { name: "The Hopeless Romantic", emoji: "🌈", line: "You believe in magic and lost causes." },
+  heartbreak: { name: "The Drama Magnet", emoji: "🎭", line: "You don't watch for fun. You watch to FEEL." },
+};
+
+function personaFor(v: Vibe) {
+  const top = [...AXES].sort((a, b) => v[b] - v[a])[0];
+  return PERSONA[top];
+}
 
 const AXIS_LABEL: Record<Axis, string> = {
   glory: "Glory", firepower: "Firepower", grit: "Grit", fairytale: "Fairytale", heartbreak: "Heartbreak",
@@ -201,9 +215,10 @@ function Result({
   const o = oddsFor(top.teamId);
   const conf = CONF_META[team.confederation];
   const vibe = TEAM_VIBES[top.teamId];
+  const persona = personaFor(userVibe);
 
   async function share() {
-    const text = `🔮 My 2026 World Cup soulmate is ${team.flag} ${team.name} — a ${top.pctMatch}% match! Find yours at ORACLE '26.`;
+    const text = `🔮 I'm ${persona.emoji} ${persona.name} — and my 2026 World Cup soulmate is ${team.flag} ${team.name} (${top.pctMatch}% match)! Find yours at ORACLE '26.`;
     try {
       await navigator.clipboard.writeText(text);
       alert("Copied your result — go paste it and brag.");
@@ -231,8 +246,16 @@ function Result({
         ))}
       </div>
 
-      <div className="text-center mb-2 text-xs font-semibold tracking-[0.25em] uppercase text-emerald">
-        It&apos;s a match
+      {/* persona banner */}
+      <div className="text-center mb-4">
+        <div className="text-xs font-semibold tracking-[0.25em] uppercase text-emerald mb-1">
+          Your football personality
+        </div>
+        <div className="text-3xl sm:text-4xl font-black tracking-tight">
+          {persona.emoji} You&apos;re {persona.name}
+        </div>
+        <p className="text-mute mt-1">{persona.line}</p>
+        <div className="text-sm text-mute mt-3">…so your soulmate had to be ↓</div>
       </div>
 
       {/* hero card */}

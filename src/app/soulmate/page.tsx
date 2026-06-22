@@ -229,10 +229,10 @@ function Result({
 
   async function share() {
     const url = typeof window !== "undefined" ? window.location.origin + shareUrl : shareUrl;
-    const text = `🔮 My Fan ID: ${me.emoji} ${me.name} (${me.traits.join(" · ")}). Spirit team: ${team.flag} ${team.name}. What's yours?`;
+    const text = `${me.tier.emoji} ${me.tier.name} Fan ID: ${me.emoji} ${me.name} — only ${me.rarity}% are this type. Spirit team: ${team.flag} ${team.name}. What's yours?`;
     try {
       if (navigator.share) {
-        await navigator.share({ title: "My World Cup Soulmate", text, url });
+        await navigator.share({ title: "My World Cup Fan ID", text, url });
       } else {
         await navigator.clipboard.writeText(`${text} ${url}`);
         alert("Link copied — go paste it and brag.");
@@ -269,6 +269,20 @@ function Result({
         className="card p-7 text-center relative overflow-hidden"
         style={{ boxShadow: "0 0 60px -18px var(--color-emerald)" }}
       >
+        {/* rarity tier — collectible-card style badge */}
+        <div
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-black tracking-widest mb-3"
+          style={{
+            color: me.tier.color,
+            background: `${me.tier.color}1a`,
+            border: `1.5px solid ${me.tier.color}66`,
+            boxShadow: me.tier.name === "LEGENDARY" ? `0 0 26px ${me.tier.color}88` : "none",
+          }}
+        >
+          <span>{me.tier.emoji}</span>
+          {me.tier.name}
+        </div>
+
         <div className="text-7xl mb-1 leading-none">{me.emoji}</div>
         <h1 className="text-4xl sm:text-5xl font-black tracking-tight">{me.name}</h1>
         <p className="text-mute mt-2 max-w-md mx-auto">{me.desc}</p>
@@ -290,7 +304,10 @@ function Result({
         <div className="grid grid-cols-3 gap-2 mt-5 text-left">
           <IdBox label="💪 Superpower" value={me.superpower} />
           <IdBox label="🩹 Fatal flaw" value={me.flaw} />
-          <IdBox label="🦄 Rarity" value={`~${me.rarity}% of fans`} />
+          <IdBox
+            label={`${me.tier.emoji} Rarity`}
+            value={`Only ${me.rarity}% are ${me.name.replace("The ", "")}s — ${me.tier.tagline}`}
+          />
         </div>
       </div>
 

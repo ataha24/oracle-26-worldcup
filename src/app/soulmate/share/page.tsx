@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { TEAM_BY_ID } from "@/lib/data/teams";
-import { PERSONA, IDENTITY, TRAIT_ADJ } from "@/lib/match/persona";
+import { PERSONA, IDENTITY, TRAIT_ADJ, rarityFor } from "@/lib/match/persona";
 import type { Axis } from "@/lib/match/vibes";
 
 type SP = Promise<{ team?: string; persona?: string; t2?: string; pct?: string }>;
@@ -14,14 +14,15 @@ function parse(sp: { team?: string; persona?: string; t2?: string; pct?: string 
   const ident = IDENTITY[pKey] ?? IDENTITY.glory;
   const traits = [TRAIT_ADJ[pKey] ?? "Front-runner", TRAIT_ADJ[t2] ?? "Chaotic"];
   const pct = Math.max(1, Math.min(99, parseInt(sp.pct ?? "90", 10) || 90));
+  const { rarity, tier } = rarityFor(pKey, t2);
   const cardUrl = `/api/card?team=${team.id}&persona=${pKey}&t2=${t2}&pct=${pct}`;
-  return { team, persona, ident, traits, pct, cardUrl };
+  return { team, persona, ident, traits, rarity, tier, pct, cardUrl };
 }
 
 export async function generateMetadata({ searchParams }: { searchParams: SP }): Promise<Metadata> {
-  const { team, persona, traits, cardUrl } = parse(await searchParams);
-  const title = `${persona.emoji} My Fan ID: ${persona.name}`;
-  const description = `${traits.join(" · ")}. Spirit team: ${team.name}. What's your World Cup Fan Personality? Find out with ORACLE '26.`;
+  const { team, persona, rarity, tier, cardUrl } = parse(await searchParams);
+  const title = `${tier.emoji} ${tier.name} — ${persona.emoji} ${persona.name}`;
+  const description = `Only ${rarity}% of fans are this type. Spirit team: ${team.name}. What's your World Cup Fan Personality? Find out with ORACLE '26.`;
   return {
     title,
     description,
@@ -31,19 +32,22 @@ export async function generateMetadata({ searchParams }: { searchParams: SP }): 
 }
 
 export default async function SharePage({ searchParams }: { searchParams: SP }) {
-  const { team, persona, ident, traits, cardUrl } = parse(await searchParams);
+  const { team, persona, ident, traits, rarity, tier, cardUrl } = parse(await searchParams);
 
   return (
     <div className="max-w-2xl mx-auto px-5 py-12 text-center">
-      <div className="text-xs font-semibold tracking-[0.25em] uppercase text-emerald mb-2">
-        Someone just got their Fan ID
+      <div
+        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-black tracking-widest mb-3"
+        style={{ color: tier.color, background: `${tier.color}1a`, border: `1.5px solid ${tier.color}66` }}
+      >
+        {tier.emoji} {tier.name}
       </div>
       <h1 className="text-3xl sm:text-4xl font-black tracking-tight mb-1">
         {persona.emoji} {persona.name}
       </h1>
       <p className="text-mute mb-1">{ident.desc}</p>
       <p className="text-sm text-mute mb-6">
-        {traits.join(" · ")} · spirit team {team.flag} {team.name}
+        {traits.join(" · ")} · only {rarity}% are this type · spirit team {team.flag} {team.name}
       </p>
 
       {/* the card image itself */}

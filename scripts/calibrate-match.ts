@@ -116,6 +116,21 @@ for (let i = 0; i < M; i++) {
 const rshares = Array.from(rc, (c, i) => ({ id: ids[i], share: c / M })).sort((a, b) => b.share - a.share);
 console.log(`\n[1,000,000 random fans] reachable ${rshares.filter((s) => s.share > 0).length}/${N} · top ${getTeam(rshares[0].id).code} ${(rshares[0].share*100).toFixed(1)}% · Gini ${giniCoeff(rshares.map((s) => s.share)).toFixed(3)}`);
 
+// ---- REAL rarity: distribution of "types" (primary+secondary trait) over the
+// complete population of quiz paths. This replaces the old made-up formula. ----
+const typeCount: Record<string, number> = {};
+for (const w of leans) {
+  const sorted = [...AXES].sort((a, b) => w[b] - w[a]);
+  const key = `${sorted[0]}+${sorted[1]}`;
+  typeCount[key] = (typeCount[key] ?? 0) + 1;
+}
+const typeShares: Record<string, number> = {};
+for (const [k, c] of Object.entries(typeCount)) typeShares[k] = Number((c / P).toFixed(4));
+const sortedTypes = Object.entries(typeShares).sort((a, b) => a[1] - b[1]);
+console.log(`\nFan-ID "types" (primary+secondary): ${sortedTypes.length} possible`);
+console.log("  rarest:", sortedTypes.slice(0, 5).map(([k, s]) => `${k} ${(s * 100).toFixed(1)}%`).join("  "));
+console.log("  commonest:", sortedTypes.slice(-5).map(([k, s]) => `${k} ${(s * 100).toFixed(1)}%`).join("  "));
+
 // ---- write calibration ----
 const biases: Record<string, number> = {};
 ids.forEach((id, i) => (biases[id] = Number(bias[i].toFixed(4))));
@@ -124,6 +139,7 @@ writeFileSync(
   JSON.stringify(
     {
       biases,
+      typeShares,
       meta: {
         calibrated: true,
         method: "IPF over exhaustive quiz enumeration",

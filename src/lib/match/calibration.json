@@ -49,12 +49,34 @@
     "jordan": 0.0621,
     "new-zealand": -0.0851
   },
+  "typeShares": {
+    "glory+grit": 0.0874,
+    "glory+firepower": 0.1375,
+    "glory+heartbreak": 0.0359,
+    "glory+fairytale": 0.0681,
+    "firepower+glory": 0.1301,
+    "grit+glory": 0.0391,
+    "heartbreak+glory": 0.0173,
+    "fairytale+glory": 0.054,
+    "firepower+fairytale": 0.0874,
+    "grit+fairytale": 0.0408,
+    "fairytale+heartbreak": 0.0437,
+    "firepower+grit": 0.0825,
+    "fairytale+grit": 0.0173,
+    "heartbreak+fairytale": 0.0122,
+    "grit+firepower": 0.0281,
+    "heartbreak+firepower": 0.0198,
+    "grit+heartbreak": 0.0234,
+    "fairytale+firepower": 0.0278,
+    "firepower+heartbreak": 0.0405,
+    "heartbreak+grit": 0.0071
+  },
   "meta": {
     "calibrated": true,
     "method": "IPF over exhaustive quiz enumeration",
     "paths": 4096,
     "iterations": 400,
     "topShareAfter": 0.0593,
-    "generatedAt": "2026-06-22T20:43:49.792Z"
+    "generatedAt": "2026-06-22T21:05:12.369Z"
   }
 }

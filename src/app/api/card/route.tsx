@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 import { TEAM_BY_ID } from "@/lib/data/teams";
-import { PERSONA, IDENTITY, TRAIT_ADJ } from "@/lib/match/persona";
+import { PERSONA, IDENTITY, TRAIT_ADJ, rarityFor } from "@/lib/match/persona";
 import type { Axis } from "@/lib/match/vibes";
 
 export const runtime = "nodejs";
@@ -24,6 +24,7 @@ export async function GET(req: Request) {
   const traits = [TRAIT_ADJ[pKey] ?? "Front-runner", TRAIT_ADJ[t2] ?? "Chaotic"];
   const pct = Math.max(1, Math.min(99, parseInt(sp.get("pct") ?? "90", 10) || 90));
   const accent = ACCENT[pKey] ?? "#10d989";
+  const { rarity, tier } = rarityFor(pKey, t2);
 
   return new ImageResponse(
     (
@@ -46,8 +47,23 @@ export async function GET(req: Request) {
             <span>🔮</span>
             <span style={{ color: "#b9f5dc" }}>ORACLE&apos;26</span>
           </div>
-          <div style={{ display: "flex", fontSize: "22px", color: "#8a94ad", letterSpacing: "0.15em" }}>
-            WORLD CUP 2026
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              fontSize: "24px",
+              fontWeight: 800,
+              letterSpacing: "0.12em",
+              color: tier.color,
+              padding: "8px 20px",
+              borderRadius: "9999px",
+              border: `2px solid ${tier.color}66`,
+              backgroundColor: `${tier.color}1a`,
+            }}
+          >
+            <span>{tier.emoji}</span>
+            <span>{tier.name}</span>
           </div>
         </div>
 
@@ -92,7 +108,7 @@ export async function GET(req: Request) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "26px", color: "#8a94ad" }}>
           <span style={{ display: "flex", alignItems: "center", gap: "12px", color: "#eef1f7" }}>
             <span style={{ fontSize: "40px" }}>{team.flag}</span>
-            <span>Spirit team: {team.name} · {pct}%</span>
+            <span>Spirit team: {team.name} · only {rarity}% are this type</span>
           </span>
           <span>oracle-26-worldcup.vercel.app/soulmate</span>
         </div>

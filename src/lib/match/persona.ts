@@ -1,4 +1,10 @@
 import { AXES, type Axis, type Vibe } from "./vibes";
+import CAL from "./calibration.json";
+
+// REAL rarity: the share of every possible quiz outcome (all 4096 enumerated
+// paths) that lands on each "type" (primary+secondary trait). Computed offline
+// in scripts/calibrate-match.ts — this is grounded data, not a made-up formula.
+const TYPE_SHARES: Record<string, number> = (CAL as { typeShares?: Record<string, number> }).typeShares ?? {};
 
 // Your "fan personality" — the real prize of the quiz. Derived from your
 // dominant trait, with a secondary trait for flavour, plus a superpower, a
@@ -68,16 +74,42 @@ export interface FanIdentity {
   superpower: string;
   flaw: string;
   traits: string[]; // [primary adj, secondary adj]
-  rarity: number; // playful "% of fans like you"
+  rarity: number; // REAL % of possible fans who share your type
+  tier: Tier;
+}
+
+// Collectible-card rarity tiers, keyed off the REAL frequency of your type.
+export interface Tier {
+  name: "LEGENDARY" | "EPIC" | "RARE" | "COMMON";
+  emoji: string;
+  color: string; // hex (used by both UI and the OG card)
+  tagline: string;
+}
+
+export function tierForShare(share: number): Tier {
+  if (share <= 0.02)
+    return { name: "LEGENDARY", emoji: "🌟", color: "#f5c542", tagline: "practically one of one" };
+  if (share <= 0.045)
+    return { name: "EPIC", emoji: "💎", color: "#a78bfa", tagline: "a genuinely rare pull" };
+  if (share <= 0.085)
+    return { name: "RARE", emoji: "🔷", color: "#22d3ee", tagline: "not many think like you" };
+  return { name: "COMMON", emoji: "🟢", color: "#10d989", tagline: "you're in great company" };
+}
+
+export function typeKeyOf(v: Vibe): { key: Axis; secondKey: Axis; typeKey: string } {
+  const sorted = [...AXES].sort((a, b) => v[b] - v[a]);
+  return { key: sorted[0], secondKey: sorted[1], typeKey: `${sorted[0]}+${sorted[1]}` };
+}
+
+/** rarity + tier for a (primary, secondary) type — shared by quiz, card & share page */
+export function rarityFor(key: Axis, secondKey: Axis) {
+  const share = TYPE_SHARES[`${key}+${secondKey}`] ?? 0.05;
+  return { rarity: Math.max(1, Math.round(share * 100)), tier: tierForShare(share) };
 }
 
 export function fanIdentity(v: Vibe): FanIdentity {
-  const sorted = [...AXES].sort((a, b) => v[b] - v[a]);
-  const key = sorted[0];
-  const secondKey = sorted[1];
-  const mean = AXES.reduce((s, k) => s + v[k], 0) / AXES.length;
-  // the more lopsided your wiring, the rarer (and more special) you are
-  const rarity = Math.max(4, Math.min(30, Math.round(30 - (v[key] - mean) * 42)));
+  const { key, secondKey } = typeKeyOf(v);
+  const { rarity, tier } = rarityFor(key, secondKey);
   return {
     key,
     secondKey,
@@ -85,5 +117,6 @@ export function fanIdentity(v: Vibe): FanIdentity {
     ...IDENTITY[key],
     traits: [TRAIT_ADJ[key], TRAIT_ADJ[secondKey]],
     rarity,
+    tier,
   };
 }

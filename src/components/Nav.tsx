@@ -10,7 +10,8 @@ const LINKS = [
   { href: "/bracket", label: "Bracket" },
   { href: "/predictor", label: "Predictor" },
   { href: "/teams", label: "Teams" },
-  { href: "/oracle", label: "Ask the Oracle" },
+  { href: "/soulmate", label: "Soulmate 💘" },
+  { href: "/oracle", label: "Oracle" },
 ];
 
 export function Nav({

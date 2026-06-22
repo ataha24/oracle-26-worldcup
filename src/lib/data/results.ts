@@ -49,13 +49,16 @@ export const RESULTS: PlayedMatch[] = [
   { groupId: "F", home: "netherlands", away: "sweden", hg: 5, ag: 1, date: "2026-06-20" },
   { groupId: "F", home: "japan", away: "tunisia", hg: 4, ag: 0, date: "2026-06-20" },
 
-  // ---- Group G (one round played) ----
+  // ---- Group G (round two in progress; NZ–Egypt not yet played) ----
   { groupId: "G", home: "belgium", away: "egypt", hg: 1, ag: 1, date: "2026-06-15" },
   { groupId: "G", home: "iran", away: "new-zealand", hg: 2, ag: 2, date: "2026-06-15" },
+  { groupId: "G", home: "belgium", away: "iran", hg: 0, ag: 0, date: "2026-06-21" },
 
-  // ---- Group H (one round played) ----
+  // ---- Group H (two rounds played) ----
   { groupId: "H", home: "spain", away: "cape-verde", hg: 0, ag: 0, date: "2026-06-15" },
   { groupId: "H", home: "saudi-arabia", away: "uruguay", hg: 1, ag: 1, date: "2026-06-15" },
+  { groupId: "H", home: "spain", away: "saudi-arabia", hg: 4, ag: 0, date: "2026-06-21" },
+  { groupId: "H", home: "uruguay", away: "cape-verde", hg: 2, ag: 2, date: "2026-06-21" },
 
   // ---- Group I (one round played) ----
   { groupId: "I", home: "france", away: "senegal", hg: 3, ag: 1, date: "2026-06-16" },
@@ -84,4 +87,4 @@ export const PLAYED_BY_PAIR: Record<string, PlayedMatch> = Object.fromEntries(
   RESULTS.map((m) => [pairKey(m.home, m.away), m]),
 );
 
-export const LAST_UPDATED = "2026-06-20";
+export const LAST_UPDATED = "2026-06-21";

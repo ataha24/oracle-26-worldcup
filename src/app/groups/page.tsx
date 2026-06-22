@@ -2,6 +2,8 @@ import { GROUPS } from "@/lib/data/groups";
 import { getTeam } from "@/lib/data/teams";
 import { groupTable, remainingPairings } from "@/lib/engine/standings";
 import { predictFixture } from "@/lib/engine/predict";
+import { liveOutcome } from "@/lib/engine/match";
+import { LIVE_BY_PAIR, pairKey } from "@/lib/data/results";
 import { oddsFor } from "@/lib/forecast";
 import { pct, heat } from "@/lib/format";
 import { Flag, SectionTitle } from "@/components/bits";
@@ -109,6 +111,38 @@ function GroupCard({ groupId, isDeath }: { groupId: string; isDeath: boolean }) 
           </div>
           <div className="space-y-1.5">
             {remaining.map(([a, b]) => {
+              const live = LIVE_BY_PAIR[pairKey(a, b)];
+              if (live) {
+                const lh = getTeam(live.home);
+                const la = getTeam(live.away);
+                const wdl = liveOutcome(
+                  lh, la,
+                  { hg: live.hg, ag: live.ag, minute: live.minute },
+                  { neutral: !(lh.host || la.host) },
+                );
+                return (
+                  <div key={`${a}-${b}`} className="flex items-center gap-2 text-xs">
+                    <span className="w-28 text-right truncate">
+                      {lh.name} {lh.flag}
+                    </span>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-center gap-1.5 mb-0.5">
+                        <span className="text-[9px] font-bold text-rose flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose animate-pulse" />
+                          LIVE {live.minute}&apos;
+                        </span>
+                        <span className="font-bold tabular">
+                          {live.hg}–{live.ag}
+                        </span>
+                      </div>
+                      <MiniWDL p={wdl} />
+                    </div>
+                    <span className="w-28 truncate">
+                      {la.flag} {la.name}
+                    </span>
+                  </div>
+                );
+              }
               const p = predictFixture(a, b);
               const ta = getTeam(p.homeId);
               const tb = getTeam(p.awayId);
@@ -131,7 +165,11 @@ function GroupCard({ groupId, isDeath }: { groupId: string; isDeath: boolean }) 
   );
 }
 
-function MiniWDL({ p }: { p: ReturnType<typeof predictFixture> }) {
+function MiniWDL({
+  p,
+}: {
+  p: { pHomeWin: number; pDraw: number; pAwayWin: number };
+}) {
   return (
     <span className="flex-1 flex h-4 rounded overflow-hidden text-[9px] font-bold text-black/80 tabular">
       <span

@@ -77,10 +77,32 @@ export const RESULTS: PlayedMatch[] = [
   { groupId: "L", home: "ghana", away: "panama", hg: 1, ag: 0, date: "2026-06-17" },
 ];
 
+// In-progress matches: NOT final results. The engine continues these from the
+// current score for the remaining minutes instead of simulating them fresh, and
+// they do NOT count in the completed-results group table until full time.
+// Clear an entry once the match finishes and move it into RESULTS above.
+export interface LiveMatch {
+  groupId: string;
+  home: string;
+  away: string;
+  hg: number; // current home goals
+  ag: number; // current away goals
+  minute: number; // minutes played so far (0–90+)
+}
+
+export const LIVE: LiveMatch[] = [
+  // New Zealand 1–1 Egypt — Group G, 2nd half (Surman header; Ziko equalised)
+  { groupId: "G", home: "new-zealand", away: "egypt", hg: 1, ag: 1, minute: 62 },
+];
+
 /** key for an unordered pair of teams */
 export function pairKey(a: string, b: string): string {
   return [a, b].sort().join("|");
 }
+
+export const LIVE_BY_PAIR: Record<string, LiveMatch> = Object.fromEntries(
+  LIVE.map((m) => [pairKey(m.home, m.away), m]),
+);
 
 /** map of played pairings -> {hg, ag} oriented as stored (home/away) */
 export const PLAYED_BY_PAIR: Record<string, PlayedMatch> = Object.fromEntries(

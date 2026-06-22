@@ -140,3 +140,58 @@ function knockoutAdvance(
 function clamp01(x: number): number {
   return Math.max(0.02, Math.min(0.98, x));
 }
+
+// ----------------------------------------------------------------------------
+// Live (in-progress) matches
+// ----------------------------------------------------------------------------
+// Continue a match from its current score: only the goals expected in the
+// REMAINING minutes are modelled, then added to what's already on the board.
+
+export interface LiveState {
+  hg: number;
+  ag: number;
+  minute: number;
+}
+
+/** expected goals for the rest of the match, given the minute played */
+export function remainingXg(
+  home: Team,
+  away: Team,
+  minute: number,
+  ctx: MatchContext = {},
+): { xgHome: number; xgAway: number } {
+  const full = expectedGoals(home, away, ctx);
+  const frac = Math.max(0, Math.min(1, (90 - minute) / 90));
+  return { xgHome: full.xgHome * frac, xgAway: full.xgAway * frac };
+}
+
+/** W/D/L for a live match from its current score (home/away orientation) */
+export function liveOutcome(
+  home: Team,
+  away: Team,
+  state: LiveState,
+  ctx: MatchContext = {},
+): { pHomeWin: number; pDraw: number; pAwayWin: number } {
+  const { xgHome, xgAway } = remainingXg(home, away, state.minute, ctx);
+  const N = 7;
+  const hp = Array.from({ length: N + 1 }, (_, k) => poissonPmfLocal(k, xgHome));
+  const ap = Array.from({ length: N + 1 }, (_, k) => poissonPmfLocal(k, xgAway));
+  let pHomeWin = 0, pDraw = 0, pAwayWin = 0;
+  for (let i = 0; i <= N; i++) {
+    for (let j = 0; j <= N; j++) {
+      const p = hp[i] * ap[j];
+      const fh = state.hg + i;
+      const fa = state.ag + j;
+      if (fh > fa) pHomeWin += p;
+      else if (fh === fa) pDraw += p;
+      else pAwayWin += p;
+    }
+  }
+  return { pHomeWin, pDraw, pAwayWin };
+}
+
+function poissonPmfLocal(k: number, lambda: number): number {
+  let fact = 1;
+  for (let i = 2; i <= k; i++) fact *= i;
+  return (Math.exp(-lambda) * Math.pow(lambda, k)) / fact;
+}

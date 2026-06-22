@@ -1,7 +1,7 @@
 import type { SimulationResult, Team, TeamTournamentOdds } from "@/lib/types";
 import { TEAMS, getTeam } from "@/lib/data/teams";
 import { GROUPS } from "@/lib/data/groups";
-import { RESULTS } from "@/lib/data/results";
+import { RESULTS, LIVE_BY_PAIR, pairKey } from "@/lib/data/results";
 import { BRACKET } from "@/lib/data/bracket";
 import { groupPairings } from "./standings";
 import { expectedGoals, predictMatch } from "./match";
@@ -35,16 +35,36 @@ function poissonSample(lambda: number, rnd: () => number): number {
   return k - 1;
 }
 
-function sampleScore(a: Team, b: Team, rnd: () => number): [number, number] {
-  let xgA: number, xgB: number;
+/** host-aware expected goals oriented to (a, b) */
+function xgHostAware(a: Team, b: Team): { xgA: number; xgB: number } {
   if (a.host && !b.host) {
-    ({ xgHome: xgA, xgAway: xgB } = expectedGoals(a, b, { homeAdvantage: true }));
-  } else if (b.host && !a.host) {
-    ({ xgHome: xgB, xgAway: xgA } = expectedGoals(b, a, { homeAdvantage: true }));
-  } else {
-    ({ xgHome: xgA, xgAway: xgB } = expectedGoals(a, b, { neutral: true }));
+    const { xgHome, xgAway } = expectedGoals(a, b, { homeAdvantage: true });
+    return { xgA: xgHome, xgB: xgAway };
   }
+  if (b.host && !a.host) {
+    const { xgHome, xgAway } = expectedGoals(b, a, { homeAdvantage: true });
+    return { xgA: xgAway, xgB: xgHome };
+  }
+  const { xgHome, xgAway } = expectedGoals(a, b, { neutral: true });
+  return { xgA: xgHome, xgB: xgAway };
+}
+
+function sampleScore(a: Team, b: Team, rnd: () => number): [number, number] {
+  const { xgA, xgB } = xgHostAware(a, b);
   return [poissonSample(xgA, rnd), poissonSample(xgB, rnd)];
+}
+
+/** sample a still-to-finish pairing: continue a live match, else simulate fresh */
+function samplePairing(aId: string, bId: string, rnd: () => number): [number, number] {
+  const live = LIVE_BY_PAIR[pairKey(aId, bId)];
+  const a = getTeam(aId);
+  const b = getTeam(bId);
+  if (!live) return sampleScore(a, b, rnd);
+  const { xgA, xgB } = xgHostAware(a, b);
+  const frac = Math.max(0, Math.min(1, (90 - live.minute) / 90));
+  const curA = live.home === aId ? live.hg : live.ag;
+  const curB = live.home === aId ? live.ag : live.hg;
+  return [curA + poissonSample(xgA * frac, rnd), curB + poissonSample(xgB * frac, rnd)];
 }
 
 function knockoutWinner(a: Team, b: Team, rnd: () => number): Team {
@@ -175,7 +195,7 @@ export function simulate(iterations = 20000, seed = 73104): SimulationResult {
         rows[id] = { teamId: id, pts: b.pts, gf: b.gf, ga: b.ga, gd: 0 };
       }
       for (const [aId, bId] of plan.remaining) {
-        const [ga, gb] = sampleScore(getTeam(aId), getTeam(bId), rnd);
+        const [ga, gb] = samplePairing(aId, bId, rnd);
         const A = rows[aId];
         const B = rows[bId];
         A.gf += ga; A.ga += gb;

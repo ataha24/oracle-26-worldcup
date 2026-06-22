@@ -37,9 +37,15 @@ export async function POST(req: Request) {
   }
   if (!question.trim()) return Response.json({ error: "empty" }, { status: 400 });
 
+  const debug = new URL(req.url).searchParams.get("debug") === "1";
+
   // No model credentials → fall back to the deterministic engine answer.
   if (!hasCredentials()) {
-    return Response.json({ mode: "engine", answer: answer(question) });
+    return Response.json({
+      mode: "engine",
+      answer: answer(question),
+      ...(debug ? { reason: "no-credentials (AI_GATEWAY_API_KEY / VERCEL_OIDC_TOKEN unset)" } : {}),
+    });
   }
 
   try {
@@ -52,12 +58,20 @@ export async function POST(req: Request) {
       temperature: 0.5,
     });
     if (!text.trim()) {
-      return Response.json({ mode: "engine", answer: answer(question) });
+      return Response.json({
+        mode: "engine",
+        answer: answer(question),
+        ...(debug ? { reason: "empty-llm-text" } : {}),
+      });
     }
     return Response.json({ mode: "ai", text });
   } catch (err) {
     console.error("Oracle LLM error:", err);
     // graceful degradation — still answer from the engine
-    return Response.json({ mode: "engine", answer: answer(question) });
+    return Response.json({
+      mode: "engine",
+      answer: answer(question),
+      ...(debug ? { reason: `llm-error: ${err instanceof Error ? err.message : String(err)}`.slice(0, 300) } : {}),
+    });
   }
 }

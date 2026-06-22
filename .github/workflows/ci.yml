@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # `prebuild` regenerates the forecast from the latest results in the repo,
+      # then `next build` type-checks and compiles. This validates every push and
+      # confirms a data edit produces a fresh, consistent forecast.
+      - run: npm run build

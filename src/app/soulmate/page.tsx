@@ -88,8 +88,7 @@ function Intro({ onStart }: { onStart: () => void }) {
       <p className="text-mute max-w-xl mx-auto mt-5">
         Answer 6 quick questions and watch the field of 48 narrow to your team. The Oracle
         reveals your <span className="text-white">Fan ID</span> — your type, your superpower,
-        your fatal flaw, and the World Cup team you were born to root for. Then flex it on the
-        group chat.
+        your fatal flaw, and the World Cup team you were born to root for.
       </p>
       <button
         onClick={onStart}

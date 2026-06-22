@@ -9,58 +9,23 @@ import { pct } from "@/lib/format";
 import { CONF_META } from "@/lib/format";
 
 type W = Partial<Vibe>;
-interface Q {
-  q: string;
-  options: { emoji: string; label: string; w: W }[];
+interface Statement {
+  text: string;
+  emoji: string;
+  w: W; // which trait(s) this hot-take loads onto
 }
 
-const QUIZ: Q[] = [
-  {
-    q: "Pick your perfect vacation.",
-    options: [
-      { emoji: "🏝️", label: "Five-star resort, top-tier everything", w: { glory: 1 } },
-      { emoji: "🎒", label: "Backpacking somewhere nobody's heard of", w: { fairytale: 1 } },
-      { emoji: "🎢", label: "Theme park — ride everything twice", w: { firepower: 1 } },
-      { emoji: "🏔️", label: "Remote cabin, just you vs. nature", w: { grit: 1 } },
-    ],
-  },
-  {
-    q: "It's movie night. You're putting on…",
-    options: [
-      { emoji: "🦸", label: "A blockbuster where the hero wins", w: { glory: 1 } },
-      { emoji: "🐢", label: "An underdog sports movie (you'll cry)", w: { fairytale: 1 } },
-      { emoji: "💥", label: "Nonstop action and explosions", w: { firepower: 1 } },
-      { emoji: "🥀", label: "A devastating tragic romance", w: { heartbreak: 1 } },
-    ],
-  },
-  {
-    q: "Your role in the group chat is…",
-    options: [
-      { emoji: "👑", label: "The main character, obviously", w: { glory: 1 } },
-      { emoji: "🌈", label: "The relentless optimist", w: { fairytale: 1 } },
-      { emoji: "🎉", label: "The chaos starter", w: { firepower: 1 } },
-      { emoji: "🫂", label: "The ride-or-die who never flakes", w: { grit: 1 } },
-    ],
-  },
-  {
-    q: "Be honest — your toxic trait is…",
-    options: [
-      { emoji: "😤", label: "“I have to win. At everything.”", w: { glory: 1 } },
-      { emoji: "🥹", label: "“I fall for a lost cause every time.”", w: { fairytale: 1, heartbreak: 0.6 } },
-      { emoji: "🙉", label: "“I'm allergic to anything boring.”", w: { firepower: 1 } },
-      { emoji: "🧱", label: "“I never give up. Even when I should.”", w: { grit: 1 } },
-    ],
-  },
-  {
-    q: "You want this World Cup to make you feel…",
-    options: [
-      { emoji: "🥇", label: "Like a winner", w: { glory: 1 } },
-      { emoji: "🎆", label: "Endlessly entertained", w: { firepower: 1 } },
-      { emoji: "🫶", label: "Part of a fairytale", w: { fairytale: 1 } },
-      { emoji: "😭", label: "Everything, all at once", w: { heartbreak: 1, firepower: 0.5 } },
-    ],
-  },
+// Rate each "hot take" 0–5. Intensity shapes your vector — lean hard or stay cool.
+const STATEMENTS: Statement[] = [
+  { emoji: "👑", text: "I back the favourite. Winners win — simple as that.", w: { glory: 1 } },
+  { emoji: "🐣", text: "Underdogs and Cinderella runs make me genuinely emotional.", w: { fairytale: 1 } },
+  { emoji: "🎆", text: "No goals, no fun. Give me chaos, comebacks and shootouts.", w: { firepower: 1 } },
+  { emoji: "🧱", text: "A scrappy, ugly 1–0 grind is secretly beautiful to me.", w: { grit: 1 } },
+  { emoji: "🥀", text: "I always fall for the team destined to break my heart.", w: { heartbreak: 1 } },
+  { emoji: "🎢", text: "I watch sport to FEEL something — not to relax.", w: { heartbreak: 0.6, firepower: 0.6 } },
 ];
+
+const SCALE = ["Not me", "", "", "", "", "SO me 🔥"];
 
 
 const AXIS_LABEL: Record<Axis, string> = {
@@ -75,30 +40,37 @@ type Phase = "intro" | "quiz" | "reading" | "result";
 
 export default function SoulmatePage() {
   const [phase, setPhase] = useState<Phase>("intro");
-  const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState<W[]>([]);
+  const [ratings, setRatings] = useState<(number | null)[]>(
+    Array(STATEMENTS.length).fill(null),
+  );
 
   const userVibe = useMemo<Vibe>(() => {
     const sum: Vibe = { glory: 0, firepower: 0, grit: 0, fairytale: 0, heartbreak: 0 };
-    for (const a of answers) for (const k of AXES) sum[k] += a[k] ?? 0;
-    const max = Math.max(...AXES.map((k) => sum[k]), 1);
+    STATEMENTS.forEach((s, i) => {
+      const r = (ratings[i] ?? 0) / 5; // 0..1 intensity
+      for (const k of AXES) sum[k] += (s.w[k] ?? 0) * r;
+    });
+    const max = Math.max(...AXES.map((k) => sum[k]), 0);
+    if (max === 0) return { glory: 0.5, firepower: 0.5, grit: 0.5, fairytale: 0.5, heartbreak: 0.5 };
     return Object.fromEntries(AXES.map((k) => [k, sum[k] / max])) as Vibe;
-  }, [answers]);
+  }, [ratings]);
 
   const matches = useMemo(() => (phase === "result" ? matchTeams(userVibe, 3) : []), [phase, userVibe]);
 
-  function choose(w: W) {
-    const next = [...answers, w];
-    setAnswers(next);
-    if (step + 1 < QUIZ.length) {
-      setStep(step + 1);
-    } else {
-      setPhase("reading");
-      setTimeout(() => setPhase("result"), 1900);
-    }
+  function setRating(i: number, n: number) {
+    setRatings((r) => {
+      const c = [...r];
+      c[i] = n;
+      return c;
+    });
+  }
+  function submit() {
+    setPhase("reading");
+    setTimeout(() => setPhase("result"), 1900);
   }
   function restart() {
-    setAnswers([]); setStep(0); setPhase("intro");
+    setRatings(Array(STATEMENTS.length).fill(null));
+    setPhase("intro");
   }
 
   return (
@@ -106,7 +78,7 @@ export default function SoulmatePage() {
       {phase === "intro" && <Intro onStart={() => setPhase("quiz")} />}
 
       {phase === "quiz" && (
-        <Quiz q={QUIZ[step]} step={step} total={QUIZ.length} onChoose={choose} />
+        <SliderQuiz ratings={ratings} onRate={setRating} onSubmit={submit} />
       )}
 
       {phase === "reading" && <Reading />}
@@ -144,31 +116,70 @@ function Intro({ onStart }: { onStart: () => void }) {
   );
 }
 
-function Quiz({ q, step, total, onChoose }: { q: Q; step: number; total: number; onChoose: (w: W) => void }) {
+function SliderQuiz({
+  ratings,
+  onRate,
+  onSubmit,
+}: {
+  ratings: (number | null)[];
+  onRate: (i: number, n: number) => void;
+  onSubmit: () => void;
+}) {
+  const answered = ratings.filter((r) => r !== null).length;
+  const done = answered === STATEMENTS.length;
+
   return (
-    <div key={step} className="rise">
-      <div className="flex items-center gap-2 mb-6">
-        {Array.from({ length: total }).map((_, i) => (
-          <div
-            key={i}
-            className="h-1.5 flex-1 rounded-full transition-colors"
-            style={{ background: i <= step ? "var(--color-emerald)" : "var(--color-line)" }}
-          />
+    <div className="rise">
+      <div className="text-xs font-semibold tracking-[0.2em] uppercase text-emerald mb-1">
+        Rate the hot takes
+      </div>
+      <h2 className="text-2xl sm:text-3xl font-extrabold mb-1">How much is this you?</h2>
+      <p className="text-mute text-sm mb-6">
+        0 = not me at all, 5 = that&apos;s literally me. Lean as hard as you like.
+      </p>
+
+      <div className="space-y-3">
+        {STATEMENTS.map((s, i) => (
+          <div key={i} className="card p-4">
+            <div className="flex items-start gap-3 mb-3">
+              <span className="text-2xl leading-none">{s.emoji}</span>
+              <span className="font-medium">{s.text}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-mute w-12 shrink-0">{SCALE[0]}</span>
+              <div className="flex-1 flex justify-between gap-1.5">
+                {[0, 1, 2, 3, 4, 5].map((n) => {
+                  const sel = ratings[i];
+                  const on = sel !== null && n <= sel;
+                  return (
+                    <button
+                      key={n}
+                      onClick={() => onRate(i, n)}
+                      aria-label={`${s.text} — ${n}`}
+                      className="flex-1 h-8 rounded-lg transition-all"
+                      style={{
+                        background: on ? "var(--color-emerald)" : "rgba(255,255,255,0.06)",
+                        boxShadow: sel === n ? "0 0 14px var(--color-emerald)" : "none",
+                        transform: sel === n ? "scaleY(1.25)" : "none",
+                      }}
+                    />
+                  );
+                })}
+              </div>
+              <span className="text-[10px] text-mute w-14 shrink-0 text-right">{SCALE[5]}</span>
+            </div>
+          </div>
         ))}
       </div>
-      <div className="text-xs text-mute mb-2">Question {step + 1} of {total}</div>
-      <h2 className="text-2xl sm:text-3xl font-extrabold mb-6">{q.q}</h2>
-      <div className="grid gap-3">
-        {q.options.map((o, i) => (
-          <button
-            key={i}
-            onClick={() => onChoose(o.w)}
-            className="card p-4 text-left flex items-center gap-4 hover:border-emerald/50 hover:bg-white/[0.03] transition group"
-          >
-            <span className="text-3xl group-hover:scale-110 transition-transform">{o.emoji}</span>
-            <span className="font-medium">{o.label}</span>
-          </button>
-        ))}
+
+      <div className="sticky bottom-4 mt-6">
+        <button
+          onClick={onSubmit}
+          disabled={!done}
+          className="w-full py-3.5 rounded-2xl bg-emerald text-black font-bold text-lg transition disabled:opacity-40 enabled:hover:brightness-110 enabled:shadow-[0_0_40px_-8px_var(--color-emerald)]"
+        >
+          {done ? "Reveal my soulmate →" : `Rate all 6 to continue (${answered}/${STATEMENTS.length})`}
+        </button>
       </div>
     </div>
   );

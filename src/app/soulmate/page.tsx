@@ -6,6 +6,7 @@ import { oddsFor } from "@/lib/forecast";
 import { matchTeams, rankTeams, TEAM_VIBES, AXES, type Vibe, type Axis } from "@/lib/match/vibes";
 import { fanIdentity } from "@/lib/match/persona";
 import { QUESTIONS, leanFromAnswers, type Option } from "@/lib/match/quiz";
+import { getLore } from "@/lib/data/lore";
 import { pct } from "@/lib/format";
 import { CONF_META } from "@/lib/format";
 
@@ -223,6 +224,7 @@ function Result({
   const conf = CONF_META[team.confederation];
   const vibe = TEAM_VIBES[top.teamId];
   const me = fanIdentity(userVibe);
+  const lore = getLore(top.teamId);
   const params = `team=${top.teamId}&persona=${me.key}&t2=${me.secondKey}&pct=${top.pctMatch}`;
   const cardUrl = `/api/card?${params}`;
   const shareUrl = `/soulmate/share?${params}`;
@@ -328,6 +330,51 @@ function Result({
           <div className="text-[10px] text-mute uppercase tracking-widest">match</div>
         </div>
       </div>
+
+      {/* WINDOW INTO YOU — the emotional centrepiece */}
+      {lore && (
+        <div
+          className="card p-6 mt-4 relative overflow-hidden"
+          style={{ boxShadow: `0 0 50px -22px ${conf.color}` }}
+        >
+          <div className="absolute left-0 top-0 bottom-0 w-1" style={{ background: conf.color }} />
+          <div className="text-[11px] font-bold uppercase tracking-widest mb-2" style={{ color: conf.color }}>
+            🪞 A window into you
+          </div>
+          <p className="text-lg sm:text-xl font-semibold leading-snug">{lore.saysAboutYou}</p>
+
+          <div className="flex flex-wrap gap-2 mt-4">
+            {lore.vibes.map((v) => (
+              <span
+                key={v}
+                className="text-[11px] font-bold px-2.5 py-1 rounded-full"
+                style={{ background: `${conf.color}1a`, color: conf.color }}
+              >
+                {v}
+              </span>
+            ))}
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-3 mt-5">
+            <div className="bg-white/[0.03] rounded-xl p-3">
+              <div className="text-[10px] text-mute uppercase tracking-wide mb-1">
+                {team.name}&apos;s soul
+              </div>
+              <p className="text-sm">{lore.soul}</p>
+            </div>
+            <div className="bg-white/[0.03] rounded-xl p-3">
+              <div className="text-[10px] text-mute uppercase tracking-wide mb-1">
+                What watching them feels like
+              </div>
+              <p className="text-sm">{lore.watching}</p>
+            </div>
+          </div>
+
+          <div className="text-xs text-mute mt-4 pt-4 border-t border-line/60">
+            <span className="font-semibold text-white">The legend:</span> {lore.legend}
+          </div>
+        </div>
+      )}
 
       {/* why */}
       <div className="card p-5 mt-4">

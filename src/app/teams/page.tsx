@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { TEAMS } from "@/lib/data/teams";
 import { oddsFor } from "@/lib/forecast";
 import { pct, CONF_META } from "@/lib/format";
+import { getLore } from "@/lib/data/lore";
 import { ConfBadge, SectionTitle } from "@/components/bits";
 import type { Confederation } from "@/lib/types";
 
@@ -58,6 +59,7 @@ export default function TeamsPage() {
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {teams.map((t, i) => {
           const o = oddsFor(t.id);
+          const lore = getLore(t.id);
           return (
             <div
               key={t.id}
@@ -85,6 +87,19 @@ export default function TeamsPage() {
               </div>
 
               <p className="text-xs text-mute mt-3 leading-relaxed">{t.blurb}</p>
+
+              {lore && (
+                <div className="mt-3 pl-3 border-l-2 border-emerald/40">
+                  <p className="text-xs italic leading-relaxed">{lore.soul}</p>
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {lore.vibes.map((v) => (
+                      <span key={v} className="text-[9px] font-bold uppercase tracking-wide text-emerald/80">
+                        #{v.replace(/\s/g, "")}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-3 gap-2 mt-3 text-center">
                 <Mini label="Advance" value={pct(o.pAdvance)} />

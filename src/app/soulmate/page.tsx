@@ -1,32 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { getTeam } from "@/lib/data/teams";
+import { getTeam, TEAMS } from "@/lib/data/teams";
 import { oddsFor } from "@/lib/forecast";
-import { matchTeams, TEAM_VIBES, AXES, type Vibe, type Axis } from "@/lib/match/vibes";
+import { matchTeams, rankTeams, TEAM_VIBES, AXES, type Vibe, type Axis } from "@/lib/match/vibes";
 import { fanIdentity } from "@/lib/match/persona";
+import { QUESTIONS, leanFromAnswers, type Option } from "@/lib/match/quiz";
 import { pct } from "@/lib/format";
 import { CONF_META } from "@/lib/format";
-
-type W = Partial<Vibe>;
-interface Statement {
-  text: string;
-  emoji: string;
-  w: W; // which trait(s) this hot-take loads onto
-}
-
-// Rate each "hot take" 0–5. Intensity shapes your vector — lean hard or stay cool.
-const STATEMENTS: Statement[] = [
-  { emoji: "👑", text: "I back the favourite. Winners win — simple as that.", w: { glory: 1 } },
-  { emoji: "🐣", text: "Underdogs and Cinderella runs make me genuinely emotional.", w: { fairytale: 1 } },
-  { emoji: "🎆", text: "No goals, no fun. Give me chaos, comebacks and shootouts.", w: { firepower: 1 } },
-  { emoji: "🧱", text: "A scrappy, ugly 1–0 grind is secretly beautiful to me.", w: { grit: 1 } },
-  { emoji: "🥀", text: "I always fall for the team destined to break my heart.", w: { heartbreak: 1 } },
-  { emoji: "🎢", text: "I watch sport to FEEL something — not to relax.", w: { heartbreak: 0.6, firepower: 0.6 } },
-];
-
-const SCALE = ["Not me", "", "", "", "", "SO me 🔥"];
-
 
 const AXIS_LABEL: Record<Axis, string> = {
   glory: "Glory", firepower: "Firepower", grit: "Grit", fairytale: "Fairytale", heartbreak: "Heartbreak",
@@ -36,40 +17,35 @@ const AXIS_COLOR: Record<Axis, string> = {
   fairytale: "var(--color-emerald)", heartbreak: "var(--color-violet)",
 };
 
+// how many flags remain "in contention" after each answer — the field narrows
+const FIELD_AT = [48, 32, 20, 12, 6, 3, 1];
+
 type Phase = "intro" | "quiz" | "reading" | "result";
 
 export default function SoulmatePage() {
   const [phase, setPhase] = useState<Phase>("intro");
-  const [ratings, setRatings] = useState<(number | null)[]>(
-    Array(STATEMENTS.length).fill(null),
+  const [answers, setAnswers] = useState<(Option | null)[]>(
+    Array(QUESTIONS.length).fill(null),
   );
 
-  const userVibe = useMemo<Vibe>(() => {
-    const sum: Vibe = { glory: 0, firepower: 0, grit: 0, fairytale: 0, heartbreak: 0 };
-    STATEMENTS.forEach((s, i) => {
-      const r = (ratings[i] ?? 0) / 5; // 0..1 intensity
-      for (const k of AXES) sum[k] += (s.w[k] ?? 0) * r;
-    });
-    const max = Math.max(...AXES.map((k) => sum[k]), 0);
-    if (max === 0) return { glory: 0.5, firepower: 0.5, grit: 0.5, fairytale: 0.5, heartbreak: 0.5 };
-    return Object.fromEntries(AXES.map((k) => [k, sum[k] / max])) as Vibe;
-  }, [ratings]);
+  const step = answers.findIndex((a) => a === null) === -1
+    ? QUESTIONS.length
+    : answers.findIndex((a) => a === null);
 
+  const userVibe = useMemo<Vibe>(() => leanFromAnswers(answers), [answers]);
   const matches = useMemo(() => (phase === "result" ? matchTeams(userVibe, 3) : []), [phase, userVibe]);
 
-  function setRating(i: number, n: number) {
-    setRatings((r) => {
-      const c = [...r];
-      c[i] = n;
-      return c;
-    });
-  }
-  function submit() {
-    setPhase("reading");
-    setTimeout(() => setPhase("result"), 1900);
+  function answer(i: number, opt: Option) {
+    const next = [...answers];
+    next[i] = opt;
+    setAnswers(next);
+    if (next.every((a) => a !== null)) {
+      setPhase("reading");
+      setTimeout(() => setPhase("result"), 2100);
+    }
   }
   function restart() {
-    setRatings(Array(STATEMENTS.length).fill(null));
+    setAnswers(Array(QUESTIONS.length).fill(null));
     setPhase("intro");
   }
 
@@ -77,8 +53,14 @@ export default function SoulmatePage() {
     <div className="max-w-3xl mx-auto px-5 py-12 min-h-[80vh] flex flex-col justify-center">
       {phase === "intro" && <Intro onStart={() => setPhase("quiz")} />}
 
-      {phase === "quiz" && (
-        <SliderQuiz ratings={ratings} onRate={setRating} onSubmit={submit} />
+      {phase === "quiz" && step < QUESTIONS.length && (
+        <QuestionCard
+          key={step}
+          step={step}
+          answers={answers}
+          userVibe={userVibe}
+          onAnswer={(opt) => answer(step, opt)}
+        />
       )}
 
       {phase === "reading" && <Reading />}
@@ -101,9 +83,10 @@ function Intro({ onStart }: { onStart: () => void }) {
         What&apos;s Your <span className="wordmark">Fan Personality?</span>
       </h1>
       <p className="text-mute max-w-xl mx-auto mt-5">
-        Rate 6 hot takes and the Oracle reveals your{" "}
-        <span className="text-white">Fan ID</span> — your type, your superpower, your fatal flaw,
-        and the World Cup team you were born to root for. Then flex it on your group chat.
+        Answer 6 quick questions and watch the field of 48 narrow to your team. The Oracle
+        reveals your <span className="text-white">Fan ID</span> — your type, your superpower,
+        your fatal flaw, and the World Cup team you were born to root for. Then flex it on the
+        group chat.
       </p>
       <button
         onClick={onStart}
@@ -121,70 +104,90 @@ function Intro({ onStart }: { onStart: () => void }) {
   );
 }
 
-function SliderQuiz({
-  ratings,
-  onRate,
-  onSubmit,
+function QuestionCard({
+  step,
+  answers,
+  userVibe,
+  onAnswer,
 }: {
-  ratings: (number | null)[];
-  onRate: (i: number, n: number) => void;
-  onSubmit: () => void;
+  step: number;
+  answers: (Option | null)[];
+  userVibe: Vibe;
+  onAnswer: (opt: Option) => void;
 }) {
-  const answered = ratings.filter((r) => r !== null).length;
-  const done = answered === STATEMENTS.length;
+  const q = QUESTIONS[step];
+  const answeredCount = answers.filter((a) => a !== null).length;
+  // field BEFORE this answer (based on answers so far)
+  const fieldSize = FIELD_AT[Math.min(answeredCount, FIELD_AT.length - 1)];
 
   return (
     <div className="rise">
-      <div className="text-xs font-semibold tracking-[0.2em] uppercase text-emerald mb-1">
-        Rate the hot takes
-      </div>
-      <h2 className="text-2xl sm:text-3xl font-extrabold mb-1">How much is this you?</h2>
-      <p className="text-mute text-sm mb-6">
-        0 = not me at all, 5 = that&apos;s literally me. Lean as hard as you like.
-      </p>
-
-      <div className="space-y-3">
-        {STATEMENTS.map((s, i) => (
-          <div key={i} className="card p-4">
-            <div className="flex items-start gap-3 mb-3">
-              <span className="text-2xl leading-none">{s.emoji}</span>
-              <span className="font-medium">{s.text}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-mute w-12 shrink-0">{SCALE[0]}</span>
-              <div className="flex-1 flex justify-between gap-1.5">
-                {[0, 1, 2, 3, 4, 5].map((n) => {
-                  const sel = ratings[i];
-                  const on = sel !== null && n <= sel;
-                  return (
-                    <button
-                      key={n}
-                      onClick={() => onRate(i, n)}
-                      aria-label={`${s.text} — ${n}`}
-                      className="flex-1 h-8 rounded-lg transition-all"
-                      style={{
-                        background: on ? "var(--color-emerald)" : "rgba(255,255,255,0.06)",
-                        boxShadow: sel === n ? "0 0 14px var(--color-emerald)" : "none",
-                        transform: sel === n ? "scaleY(1.25)" : "none",
-                      }}
-                    />
-                  );
-                })}
-              </div>
-              <span className="text-[10px] text-mute w-14 shrink-0 text-right">{SCALE[5]}</span>
-            </div>
-          </div>
+      {/* progress */}
+      <div className="flex items-center gap-1.5 mb-5">
+        {QUESTIONS.map((_, i) => (
+          <div
+            key={i}
+            className="h-1.5 flex-1 rounded-full transition-colors"
+            style={{ background: i < step ? "var(--color-emerald)" : i === step ? "rgba(16,217,137,.45)" : "var(--color-line)" }}
+          />
         ))}
       </div>
 
-      <div className="sticky bottom-4 mt-6">
-        <button
-          onClick={onSubmit}
-          disabled={!done}
-          className="w-full py-3.5 rounded-2xl bg-emerald text-black font-bold text-lg transition disabled:opacity-40 enabled:hover:brightness-110 enabled:shadow-[0_0_40px_-8px_var(--color-emerald)]"
-        >
-          {done ? "Reveal my soulmate →" : `Rate all 6 to continue (${answered}/${STATEMENTS.length})`}
-        </button>
+      {/* the narrowing field */}
+      <FieldStrip userVibe={userVibe} size={fieldSize} hasAnswers={answeredCount > 0} />
+
+      <div className="text-xs font-semibold tracking-[0.2em] uppercase text-emerald mt-6 mb-1">
+        {q.probes} · Q{step + 1} of {QUESTIONS.length}
+      </div>
+      <h2 className="text-2xl sm:text-3xl font-extrabold mb-1">{q.q}</h2>
+      <p className="text-mute text-sm mb-5">🔍 {q.why}</p>
+
+      <div className="grid gap-3">
+        {q.options.map((o, i) => (
+          <button
+            key={i}
+            onClick={() => onAnswer(o)}
+            className="card p-4 text-left flex items-center gap-4 hover:border-emerald/50 hover:bg-white/[0.03] transition group"
+          >
+            <span className="text-3xl group-hover:scale-110 transition-transform">{o.emoji}</span>
+            <span className="font-medium">{o.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** the live field of flags, narrowing toward your team as you answer */
+function FieldStrip({ userVibe, size, hasAnswers }: { userVibe: Vibe; size: number; hasAnswers: boolean }) {
+  const ranked = useMemo(() => {
+    if (!hasAnswers) return TEAMS.map((t) => t.id); // full field, undifferentiated
+    return rankTeams(userVibe).map((r) => r.teamId);
+  }, [userVibe, hasAnswers]);
+  const shown = ranked.slice(0, size);
+
+  return (
+    <div className="card p-3">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10px] uppercase tracking-widest text-mute">
+          {hasAnswers ? "Your field is narrowing" : "The field — all 48 teams"}
+        </span>
+        <span className="text-xs font-bold tabular text-emerald">{size} left</span>
+      </div>
+      <div className="flex flex-wrap gap-1.5 justify-center min-h-[2rem]">
+        {shown.map((id, i) => (
+          <span
+            key={id}
+            className="text-xl transition-all"
+            style={{
+              opacity: hasAnswers ? Math.max(0.45, 1 - i / (size * 1.6)) : 0.85,
+              transform: hasAnswers && i === 0 ? "scale(1.35)" : "none",
+            }}
+            title={getTeam(id).name}
+          >
+            {getTeam(id).flag}
+          </span>
+        ))}
       </div>
     </div>
   );

@@ -4,11 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "tsx scripts/generate-forecast.ts",
+    "prebuild": "tsx scripts/generate-forecast.ts && tsx scripts/calibrate-match.ts",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "forecast": "tsx scripts/generate-forecast.ts",
+    "calibrate": "tsx scripts/calibrate-match.ts",
     "engine:test": "tsx scripts/test-engine.ts"
   },
   "dependencies": {

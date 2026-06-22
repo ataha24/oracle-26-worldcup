@@ -110,14 +110,16 @@ export default function HowItWorksPage() {
           </p>
           <p>
             Your quiz answers become a vector in that <em>same</em> space. Then we ask one question:
-            which team&apos;s vector points in the most similar direction to yours? That nearest
-            neighbor — measured by <span className="text-cyan">cosine similarity</span> — is your
-            soulmate.
+            whose trait <em>shape</em> looks most like yours — which team is relatively strong and
+            weak on the same axes you are? We measure that with a{" "}
+            <span className="text-cyan">correlation of shapes</span>, add a tiny per-team{" "}
+            <span className="text-emerald">calibration bias</span> (so the field stays balanced),
+            and the top score is your soulmate.
           </p>
           <Code>
 {`vibe : Team   → (glory, firepower, grit, fairytale, heartbreak)
 you  : Quiz   → (glory, firepower, grit, fairytale, heartbreak)
-match = argmax  cosineSimilarity(you, vibe)`}
+match = argmax  ( affinity(you, team)  +  calibrationBias(team) )`}
           </Code>
           <p className="text-mute">
             The fun part: none of these numbers are made up. Every axis is computed from real
@@ -157,7 +159,7 @@ match = argmax  cosineSimilarity(you, vibe)`}
           >
             Pure goals-scored-per-game, tallied from matches that have actually been played. No
             projections, no vibes — if the net keeps bulging, the number goes up. Goal-lovers tend
-            to land on free-scoring sides like Germany.
+            to land on free-scoring sides like Norway.
           </AxisCard>
 
           <AxisCard
@@ -208,27 +210,46 @@ match = argmax  cosineSimilarity(you, vibe)`}
       <section className="rise mb-12">
         <SectionTitle
           kicker="Step 1 · Fairness"
-          title="Min-max normalization"
-          desc="Raw axes live on wildly different scales. We squash all of them into 0…1 so no single axis bullies the rest."
+          title="Two ways to normalize"
+          desc="Raw axes live on wildly different scales. We make two copies of every team: one for the pretty bars, one for the actual matching."
         />
         <div className="card p-5 space-y-3 text-sm leading-relaxed">
           <p>
             Glory can be in the thousands (Elo), firepower is a handful of goals, heartbreak is a
-            small tally. If we compared those raw, glory would drown everything out. So for each
-            axis we find its min and max <em>across all 48 teams</em> and rescale every value into a
-            tidy 0-to-1 range:
+            small tally. If we compared those raw, glory would drown everything out. So we rescale —
+            but we keep <em>two</em> different normalized copies of each team, for two different jobs.
+          </p>
+          <p>
+            <strong className="text-white">For the display bars</strong> we use classic{" "}
+            <span className="text-cyan">min-max</span>: find each axis&apos;s min and max{" "}
+            <em>across all 48 teams</em> and squash every value into a tidy 0-to-1 range. This is
+            purely cosmetic — it&apos;s what fills the little colored bars on your result.
           </p>
           <Code>
-{`normalized(x) = (x − min) / (max − min)
+{`displayBar(x) = (x − min) / (max − min)     // 0…1, for the result UI only
 
 min  → 0.0   (the lowest team on that axis)
-max  → 1.0   (the highest team on that axis)
-everyone else lands somewhere in between`}
+max  → 1.0   (the highest team on that axis)`}
+          </Code>
+          <p>
+            <strong className="text-white">For the actual matching</strong> we use{" "}
+            <span className="text-cyan">z-scores</span> (standardization). For each axis we compute
+            the <C>mean</C> and <C>standardDeviation</C> across all 48 teams, then express every
+            team as &ldquo;how many standard deviations above or below average&rdquo; it is:
+          </p>
+          <Code>
+{`z(x) = (x − mean) / standardDeviation     // the matching space
+
+mean, standardDeviation computed across all 48 teams, per axis
+result: each axis now has mean 0 and std 1`}
           </Code>
           <p className="text-mute">
-            (If an axis is somehow flat, we divide by 1 instead of 0 — no exploding numbers.) After
-            this, all five axes speak the same language, and a team&apos;s vibe is just five numbers
-            between 0 and 1.
+            Why standardize instead of min-max for matching? Min-max is hostage to its two extremes —
+            one freak outlier at the top stretches the whole scale and crushes everyone else into a
+            narrow band. Z-scores center every axis at <C color="var(--color-emerald)">0</C> with a
+            spread of <C color="var(--color-emerald)">1</C>, so each of the five traits carries{" "}
+            <em>exactly equal weight</em> and a single wild team can&apos;t bully the geometry. Every
+            personality trait gets a fair, equal-footing vote.
           </p>
         </div>
       </section>
@@ -267,39 +288,125 @@ you = (glory 0.0, firepower 0.0, grit 0.0, fairytale 1.0, heartbreak 0.6)`}
       <section className="rise mb-12">
         <SectionTitle
           kicker="Step 3 · The match"
-          title="Cosine similarity"
-          desc="We compare the direction you lean, not how hard you lean. Then the closest team wins."
+          title="Correlation of shapes"
+          desc="We don't match on who's good. We match on the pattern — which traits a team is relatively strong and weak on, compared to its own average."
         />
         <div className="card p-5 space-y-3 text-sm leading-relaxed">
           <p>
-            The headline formula. For your vector <C>A</C> and a team&apos;s vector <C>B</C>, cosine
-            similarity is the dot product divided by the product of their lengths:
+            Here&apos;s the key move, and it&apos;s subtler than plain cosine. Before comparing, we{" "}
+            <strong className="text-white">center</strong> both vectors across their <em>own</em>{" "}
+            five axes — subtract the average of the five values from each one. That strips away the
+            overall &ldquo;how much&rdquo; and leaves only the <em>shape</em>: which axes stick out
+            above this team&apos;s personal average, and which sag below it.
           </p>
           <Code>
-{`              A · B            Σ Aᵢ Bᵢ
-cos(θ) = ───────────── = ─────────────────────
-            |A| · |B|     √(Σ Aᵢ²) · √(Σ Bᵢ²)
+{`center(v) = v − mean(v's own 5 axes)     // what makes this profile distinctive
 
-result ranges from 0 (nothing in common) to 1 (perfectly aligned)`}
+affinity(you, team) = cos( center(you), center(teamZ) )
+                    ∈ [−1, 1]`}
           </Code>
           <p>
-            The magic is in that division by lengths: it cancels out <em>magnitude</em> and keeps
-            only <em>direction</em>. So we&apos;re asking &ldquo;how much do you lean each way?&rdquo;
-            — not &ldquo;how intensely did you answer?&rdquo; Someone who&apos;s 100% fairytale and
-            someone who&apos;s a calmer 60% fairytale point the same way, so they match the same
-            dreamers. We score you against all 48 teams and the highest cosine wins:
+            Taking the cosine of two <em>centered</em> vectors is exactly the{" "}
+            <span className="text-cyan">Pearson correlation</span> of their five values. So{" "}
+            <C>affinity</C> answers: &ldquo;do you and this team rise and fall on the same axes?&rdquo;
+            A score of <C color="var(--color-emerald)">+1</C> means your shapes are a perfect match,{" "}
+            <C>0</C> means unrelated, and <C>−1</C> means you&apos;re mirror opposites.
           </p>
-          <Code>
-{`soulmate = argmax over teams of  cos(you, teamVibe)`}
-          </Code>
           <p>
-            Last touch — a raw cosine of <C>0.91</C> isn&apos;t very romantic to read. So we remap
-            the score into a friendlier <span className="text-emerald">70–99%</span> band before
-            showing it:
+            Why this beats plain cosine on the raw vectors: it&apos;s <em>magnitude-invariant</em> in
+            a deeper way. A blunt cosine quietly rewards teams that are high on everything, so it
+            funnels half the planet toward a handful of glittering all-rounders. Centering kills
+            that. A team that&apos;s merely &ldquo;good at all five&rdquo; has a <em>flat</em> shape
+            (nothing sticks out) and can&apos;t correlate strongly with anyone&apos;s distinctive
+            lean. So a quirky, lopsided you gets matched to a quirky, lopsided <em>them</em> — the
+            field stays interesting instead of collapsing onto the favorites. In code that&apos;s{" "}
+            <C>affinity(weights, teamId)</C>.
           </p>
-          <Code>{`pctMatch = round(70 + score · 29)`}</Code>
+          <p>
+            Last touch — a raw correlation of <C>0.91</C> isn&apos;t very romantic to read. So we
+            remap the final score into a friendlier <span className="text-emerald">70–99%</span>{" "}
+            band before showing it:
+          </p>
+          <Code>{`pctMatch = round(70 + 29 · (score − min) / (max − min))`}</Code>
           <p className="text-mute">
             Nobody&apos;s soulmate should feel like a 12% match. Everyone gets a little love.
+          </p>
+        </div>
+      </section>
+
+      {/* 5b. calibration */}
+      <section className="rise mb-12">
+        <SectionTitle
+          kicker="Step 4 · Balance"
+          title="Calibration: keeping the field honest"
+          desc="The coolest part. After affinity, we add a tiny per-team nudge — fit offline — so the matcher never defaults to the same few darlings."
+        />
+        <div className="card p-5 space-y-3 text-sm leading-relaxed">
+          <p>
+            Correlation-of-shapes already spreads the field well. But some shapes are just more{" "}
+            <em>magnetic</em> than others — a couple of teams sit near the center of where real quiz
+            answers land and would quietly hoover up more than their fair share. So each team carries
+            a small <span className="text-emerald">calibration bias</span>, and we pick the winner by
+            argmax of <C>affinity + bias</C>:
+          </p>
+          <Code>{`soulmate = argmax over teams of  ( affinity(you, team) + bias[team] )`}</Code>
+          <p>
+            The biases are fit <strong className="text-white">offline</strong>, once, against the{" "}
+            <em>complete</em> population of possible quizzes. The quiz is{" "}
+            <C>6 questions × 4 options</C>, so there are exactly{" "}
+            <C color="var(--color-gold)">4 = 4096</C> distinct answer paths. Rather than randomly
+            sampling a billion fans and hoping for coverage, we just{" "}
+            <strong className="text-white">enumerate every single path</strong> — the whole universe,
+            no sampling error at all.
+          </p>
+          <p>
+            Then we run <span className="text-cyan">iterative proportional fitting</span> (IPF): walk
+            over all 4096 paths, see which teams win too often or too rarely, and nudge each
+            team&apos;s bias toward an even share (target = <C>1/48</C>). Repeat until it settles.
+            Crucially, biases are <strong className="text-white">hard-clamped to ±0.25</strong> — a
+            gentle thumb on the scale, never a shove. If your shape genuinely loves one team, that
+            team still wins on merit; calibration only smooths the long tail.
+          </p>
+          <Code>
+{`for many iterations:
+  for each of the 4096 quiz paths:  tally the winner
+  share[team]  = wins[team] / 4096
+  bias[team]  += step · (1/48 − share[team])     // nudge toward even
+  bias[team]   = clamp(bias[team], −0.25, +0.25)  // never a shove`}
+          </Code>
+          <p>
+            Did it work? We measure spread with the{" "}
+            <span className="text-cyan">Gini coefficient</span> — <C>0</C> means a perfectly even
+            field (every team wins an equal slice), <C>1</C> means one team hogs everything. The real
+            numbers from the calibration we just ran:
+          </p>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="card p-4" style={{ boxShadow: `inset 3px 0 0 var(--color-mute)` }}>
+              <div className="text-[11px] font-bold uppercase tracking-widest text-mute mb-2">
+                Before calibration
+              </div>
+              <p className="text-sm leading-relaxed text-mute">
+                Already decent, thanks to shape-correlation: top team{" "}
+                <C color="var(--color-rose)">~10.5%</C> of all paths, Gini{" "}
+                <C color="var(--color-rose)">0.44</C>, and all{" "}
+                <C color="var(--color-emerald)">48 / 48</C> teams reachable.
+              </p>
+            </div>
+            <div className="card p-4" style={{ boxShadow: `inset 3px 0 0 var(--color-emerald)` }}>
+              <div className="text-[11px] font-bold uppercase tracking-widest text-emerald mb-2">
+                After calibration
+              </div>
+              <p className="text-sm leading-relaxed">
+                Top team drops to <C color="var(--color-emerald)">~5.9%</C>, Gini falls to{" "}
+                <C color="var(--color-emerald)">~0.17</C>, and a separate{" "}
+                <C>1,000,000</C>-random-fan simulation also reaches all{" "}
+                <C color="var(--color-emerald)">48 / 48</C> teams (top side ~4%).
+              </p>
+            </div>
+          </div>
+          <p className="text-mute">
+            All of this lives in <C>scripts/calibrate-match.ts</C> and gets regenerated whenever the
+            underlying data changes — so the field stays balanced as results roll in.
           </p>
         </div>
       </section>
@@ -309,35 +416,52 @@ result ranges from 0 (nothing in common) to 1 (perfectly aligned)`}
         <SectionTitle
           kicker="Putting it together"
           title="A quick gut-check"
-          desc="Why the answers you'd expect produce the teams you'd expect."
+          desc="Crank a single trait to the max and the matcher lands exactly where you'd hope. These five are verified against the live engine."
         />
         <div className="grid sm:grid-cols-3 gap-3">
+          <div className="card p-4" style={{ boxShadow: `inset 3px 0 0 ${AXIS_COLOR.glory}` }}>
+            <div className="text-2xl">👑</div>
+            <div className="font-bold mt-1">Pure glory</div>
+            <p className="text-mute text-sm mt-1">
+              Five-star everything, main-character syndrome, must-win → maxed{" "}
+              <span style={{ color: AXIS_COLOR.glory }}>glory</span> parks you next to{" "}
+              <span className="text-white">Argentina</span>.
+            </p>
+          </div>
           <div className="card p-4" style={{ boxShadow: `inset 3px 0 0 ${AXIS_COLOR.fairytale}` }}>
             <div className="text-2xl">🌈</div>
-            <div className="font-bold mt-1">Lean underdog</div>
+            <div className="font-bold mt-1">Pure fairytale</div>
             <p className="text-mute text-sm mt-1">
-              Backpacking trips, optimist energy, lost causes → your vector points hard at{" "}
-              <span style={{ color: AXIS_COLOR.fairytale }}>fairytale</span>, landing you beside
-              debutants like <span className="text-white">Curaçao</span> or{" "}
-              <span className="text-white">Uzbekistan</span>.
+              Backpacking trips, optimist energy, lost causes → a hard{" "}
+              <span style={{ color: AXIS_COLOR.fairytale }}>fairytale</span> lean lands you beside
+              debutant <span className="text-white">Curaçao</span>.
+            </p>
+          </div>
+          <div className="card p-4" style={{ boxShadow: `inset 3px 0 0 ${AXIS_COLOR.grit}` }}>
+            <div className="text-2xl">🛡️</div>
+            <div className="font-bold mt-1">Pure grit</div>
+            <p className="text-mute text-sm mt-1">
+              Stubborn, defiant, &ldquo;they shall not pass&rdquo; → maxed{" "}
+              <span style={{ color: AXIS_COLOR.grit }}>grit</span> matches you with{" "}
+              <span className="text-white">Iran</span>.
             </p>
           </div>
           <div className="card p-4" style={{ boxShadow: `inset 3px 0 0 ${AXIS_COLOR.firepower}` }}>
             <div className="text-2xl">💥</div>
-            <div className="font-bold mt-1">Lean chaos</div>
+            <div className="font-bold mt-1">Pure firepower</div>
             <p className="text-mute text-sm mt-1">
               Theme parks, explosions, &ldquo;allergic to boring&rdquo; → high{" "}
-              <span style={{ color: AXIS_COLOR.firepower }}>firepower</span>, steering you toward a
-              free-scoring side like <span className="text-white">Germany</span>.
+              <span style={{ color: AXIS_COLOR.firepower }}>firepower</span> steers you toward
+              free-scoring <span className="text-white">Norway</span>.
             </p>
           </div>
-          <div className="card p-4" style={{ boxShadow: `inset 3px 0 0 ${AXIS_COLOR.glory}` }}>
-            <div className="text-2xl">👑</div>
-            <div className="font-bold mt-1">Lean winner</div>
+          <div className="card p-4" style={{ boxShadow: `inset 3px 0 0 ${AXIS_COLOR.heartbreak}` }}>
+            <div className="text-2xl">🎭</div>
+            <div className="font-bold mt-1">Pure heartbreak</div>
             <p className="text-mute text-sm mt-1">
-              Five-star everything, main-character syndrome, must-win → maxed{" "}
-              <span style={{ color: AXIS_COLOR.glory }}>glory</span>, parking you next to{" "}
-              <span className="text-white">France</span> or <span className="text-white">Argentina</span>.
+              Beautiful tragedy, glory always one game away → maxed{" "}
+              <span style={{ color: AXIS_COLOR.heartbreak }}>heartbreak</span> pairs you with{" "}
+              <span className="text-white">Czechia</span>.
             </p>
           </div>
         </div>
@@ -353,9 +477,9 @@ result ranges from 0 (nothing in common) to 1 (perfectly aligned)`}
             This is a <span className="text-white">fun model, not science</span>. The five axes and
             their weights are hand-picked to be entertaining, not peer-reviewed — there&apos;s no
             ground truth for what makes a team your &ldquo;soulmate.&rdquo; The data underneath is
-            real, the cosine similarity is genuinely how we pick, but the meaning we hang on it is
-            pure good-natured fortune-telling. Take your match, adopt your team, and enjoy the
-            tournament. 🔮
+            real, the shape-correlation and calibration are genuinely how we pick, but the meaning we
+            hang on it is pure good-natured fortune-telling. Take your match, adopt your team, and
+            enjoy the tournament. 🔮
           </p>
         </div>
       </section>

@@ -436,22 +436,23 @@ pctMatch = clamp( round(62 + 36 · t^1.5), 58, 99 )`}
         />
         <div className="card p-5 space-y-3 text-sm leading-relaxed">
           <p>
-            Your <strong className="text-white">type</strong> is your top two traits — your dominant
-            axis plus your runner-up (e.g. <C>heartbreak + grit</C>). Because we already enumerate the
-            entire <C>4096</C>-path universe for calibration, we can just{" "}
-            <strong className="text-white">count</strong> exactly how often each type comes up. No
-            guessing — these are true population shares.
+            Your <strong className="text-white">type</strong> is your spirit team&apos;s two defining
+            traits (the same pair that names your persona, so they always agree) — e.g.{" "}
+            <C>fairytale + firepower</C>. Because we already enumerate the entire <C>4096</C>-path
+            universe for calibration, we can just <strong className="text-white">count</strong> how
+            often each type comes up across everyone&apos;s matches. No guessing — true population shares.
           </p>
           <Code>
 {`for each of the 4096 quiz paths:
-  type = (top axis) + (2nd axis)
+  team = your match     // argmax(affinity + bias)
+  type = team's two most distinctive traits
   count[type] += 1
 share[type] = count[type] / 4096      // the real rarity`}
           </Code>
           <p>
-            Across the 20 possible types the shares run from{" "}
-            <C color="var(--color-gold)">0.7%</C> (heartbreak + grit — the rarest wiring) up to{" "}
-            <C>13.8%</C> (glory + firepower — the crowd favourite). We bucket that share into a
+            Across the 17 possible types the shares run from{" "}
+            <C color="var(--color-gold)">2.0%</C> (grit + glory — the rarest wiring) up to{" "}
+            <C>13.0%</C> (firepower + grit — the crowd favourite). We bucket that share into a
             collectible-card tier:
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">

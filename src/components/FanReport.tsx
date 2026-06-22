@@ -1,7 +1,7 @@
 import { getTeam } from "@/lib/data/teams";
 import { oddsFor } from "@/lib/forecast";
 import { matchTeams, TEAM_RANK, AXES, type Vibe, type Axis } from "@/lib/match/vibes";
-import { fanIdentity } from "@/lib/match/persona";
+import { fanIdentityFromAxes } from "@/lib/match/persona";
 import { getLore } from "@/lib/data/lore";
 import { CONF_META } from "@/lib/format";
 
@@ -36,7 +36,9 @@ export function FanReport({ userVibe }: { userVibe: Vibe }) {
   const o = oddsFor(top.teamId);
   const conf = CONF_META[team.confederation];
   const vibe = TEAM_RANK[top.teamId];
-  const me = fanIdentity(userVibe);
+  // Persona is derived from your SPIRIT TEAM's defining traits, so the two
+  // always harmonize (matching Jordan → Hopeless Romantic, never a contradiction).
+  const me = fanIdentityFromAxes(top.topAxes[0], top.topAxes[1]);
   const lore = getLore(top.teamId);
   const tasteMax = Math.max(...AXES.map((k) => userVibe[k]), 1e-9);
 

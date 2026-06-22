@@ -1,6 +1,6 @@
 import { writeFileSync } from "node:fs";
 import { TEAMS, getTeam } from "@/lib/data/teams";
-import { affinity, AXES, type Vibe } from "@/lib/match/vibes";
+import { affinity, TEAM_Z, AXES, type Vibe } from "@/lib/match/vibes";
 import { QUESTIONS, leanFromAnswers, type Option } from "@/lib/match/quiz";
 
 // Calibrate per-team biases so the matcher does NOT default to a handful of
@@ -116,12 +116,23 @@ for (let i = 0; i < M; i++) {
 const rshares = Array.from(rc, (c, i) => ({ id: ids[i], share: c / M })).sort((a, b) => b.share - a.share);
 console.log(`\n[1,000,000 random fans] reachable ${rshares.filter((s) => s.share > 0).length}/${N} · top ${getTeam(rshares[0].id).code} ${(rshares[0].share*100).toFixed(1)}% · Gini ${giniCoeff(rshares.map((s) => s.share)).toFixed(3)}`);
 
-// ---- REAL rarity: distribution of "types" (primary+secondary trait) over the
-// complete population of quiz paths. This replaces the old made-up formula. ----
+// ---- REAL rarity: distribution of "types" over the complete population of quiz
+// paths. The type = your SPIRIT TEAM's two defining (most distinctive) traits —
+// the exact same basis the result uses for your persona, so they always agree. ----
+function teamTop2(teamId: string): string {
+  const z = TEAM_Z[teamId];
+  const s = [...AXES].sort((a, b) => z[b] - z[a]);
+  return `${s[0]}+${s[1]}`;
+}
 const typeCount: Record<string, number> = {};
-for (const w of leans) {
-  const sorted = [...AXES].sort((a, b) => w[b] - w[a]);
-  const key = `${sorted[0]}+${sorted[1]}`;
+for (let pi = 0; pi < P; pi++) {
+  let best = -Infinity, bi = 0;
+  const off = pi * N;
+  for (let ti = 0; ti < N; ti++) {
+    const v = sim[off + ti] + bias[ti];
+    if (v > best) { best = v; bi = ti; }
+  }
+  const key = teamTop2(ids[bi]);
   typeCount[key] = (typeCount[key] ?? 0) + 1;
 }
 const typeShares: Record<string, number> = {};

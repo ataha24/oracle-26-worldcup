@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { getTeam, TEAMS } from "@/lib/data/teams";
 import { matchTeams, rankTeams, AXES, type Axis, type Vibe } from "@/lib/match/vibes";
-import { fanIdentity } from "@/lib/match/persona";
+import { fanIdentityFromAxes } from "@/lib/match/persona";
 import { QUESTIONS, leanFromAnswers, type Option } from "@/lib/match/quiz";
 import { FanReport, encodeVibe, AXIS_COLOR, AXIS_LABEL } from "@/components/FanReport";
 import { shareMessage } from "@/lib/data/shareCopy";
@@ -282,7 +282,7 @@ function Result({
 }) {
   const top = matches[0];
   const team = getTeam(top.teamId);
-  const me = fanIdentity(userVibe);
+  const me = fanIdentityFromAxes(top.topAxes[0], top.topAxes[1]);
   const params = `team=${top.teamId}&persona=${me.key}&t2=${me.secondKey}&pct=${top.pctMatch}&v=${encodeVibe(userVibe)}`;
   const cardUrl = `/api/card?${params}`;
   const shareUrl = `/soulmate/share?${params}`;

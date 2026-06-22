@@ -107,8 +107,8 @@ export function rarityFor(key: Axis, secondKey: Axis) {
   return { rarity: Math.max(1, Math.round(share * 100)), tier: tierForShare(share) };
 }
 
-export function fanIdentity(v: Vibe): FanIdentity {
-  const { key, secondKey } = typeKeyOf(v);
+/** Build a Fan ID from an explicit (primary, secondary) trait pair. */
+export function fanIdentityFromAxes(key: Axis, secondKey: Axis): FanIdentity {
   const { rarity, tier } = rarityFor(key, secondKey);
   return {
     key,
@@ -119,4 +119,9 @@ export function fanIdentity(v: Vibe): FanIdentity {
     rarity,
     tier,
   };
+}
+
+export function fanIdentity(v: Vibe): FanIdentity {
+  const { key, secondKey } = typeKeyOf(v);
+  return fanIdentityFromAxes(key, secondKey);
 }

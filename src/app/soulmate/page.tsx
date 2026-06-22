@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { getTeam } from "@/lib/data/teams";
 import { oddsFor } from "@/lib/forecast";
 import { matchTeams, TEAM_VIBES, AXES, type Vibe, type Axis } from "@/lib/match/vibes";
-import { personaFor } from "@/lib/match/persona";
+import { fanIdentity } from "@/lib/match/persona";
 import { pct } from "@/lib/format";
 import { CONF_META } from "@/lib/format";
 
@@ -98,20 +98,25 @@ function Intro({ onStart }: { onStart: () => void }) {
         The Oracle&apos;s Matchmaker
       </div>
       <h1 className="text-4xl sm:text-6xl font-black tracking-tighter leading-none">
-        Find Your World Cup <span className="wordmark">Soulmate</span>
+        What&apos;s Your <span className="wordmark">Fan Personality?</span>
       </h1>
       <p className="text-mute max-w-xl mx-auto mt-5">
-        Don&apos;t know a thing about soccer? Perfect. Answer 5 questions about{" "}
-        <span className="text-white">you</span> — not the sport — and the Oracle will match you
-        with the team you were destined to love, backed by real tournament data.
+        Rate 6 hot takes and the Oracle reveals your{" "}
+        <span className="text-white">Fan ID</span> — your type, your superpower, your fatal flaw,
+        and the World Cup team you were born to root for. Then flex it on your group chat.
       </p>
       <button
         onClick={onStart}
         className="mt-8 px-8 py-3.5 rounded-2xl bg-emerald text-black font-bold text-lg hover:brightness-110 transition shadow-[0_0_40px_-8px_var(--color-emerald)]"
       >
-        Find my team →
+        Reveal my Fan ID →
       </button>
-      <p className="text-xs text-mute mt-4">Takes 20 seconds · no knowledge required</p>
+      <p className="text-xs text-mute mt-4">
+        Takes 20 seconds ·{" "}
+        <a href="/how-it-works" className="hover:text-emerald transition underline underline-offset-2">
+          how it works
+        </a>
+      </p>
     </div>
   );
 }
@@ -214,14 +219,14 @@ function Result({
   const o = oddsFor(top.teamId);
   const conf = CONF_META[team.confederation];
   const vibe = TEAM_VIBES[top.teamId];
-  const persona = personaFor(userVibe);
-  const params = `team=${top.teamId}&persona=${persona.key}&pct=${top.pctMatch}`;
+  const me = fanIdentity(userVibe);
+  const params = `team=${top.teamId}&persona=${me.key}&t2=${me.secondKey}&pct=${top.pctMatch}`;
   const cardUrl = `/api/card?${params}`;
   const shareUrl = `/soulmate/share?${params}`;
 
   async function share() {
     const url = typeof window !== "undefined" ? window.location.origin + shareUrl : shareUrl;
-    const text = `🔮 I'm ${persona.emoji} ${persona.name} — my 2026 World Cup soulmate is ${team.flag} ${team.name} (${top.pctMatch}% match)!`;
+    const text = `🔮 My Fan ID: ${me.emoji} ${me.name} (${me.traits.join(" · ")}). Spirit team: ${team.flag} ${team.name}. What's yours?`;
     try {
       if (navigator.share) {
         await navigator.share({ title: "My World Cup Soulmate", text, url });
@@ -253,42 +258,61 @@ function Result({
         ))}
       </div>
 
-      {/* persona banner */}
-      <div className="text-center mb-4">
-        <div className="text-xs font-semibold tracking-[0.25em] uppercase text-emerald mb-1">
-          Your football personality
-        </div>
-        <div className="text-3xl sm:text-4xl font-black tracking-tight">
-          {persona.emoji} You&apos;re {persona.name}
-        </div>
-        <p className="text-mute mt-1">{persona.line}</p>
-        <div className="text-sm text-mute mt-3">…so your soulmate had to be ↓</div>
+      {/* FAN ID — the hero */}
+      <div className="text-center mb-2 text-xs font-semibold tracking-[0.25em] uppercase text-emerald">
+        Your Fan ID
       </div>
-
-      {/* hero card */}
       <div
         className="card p-7 text-center relative overflow-hidden"
         style={{ boxShadow: "0 0 60px -18px var(--color-emerald)" }}
       >
-        <div className="text-8xl mb-2 leading-none glow-emerald">{team.flag}</div>
-        <h1 className="text-4xl font-black tracking-tight">{team.name}</h1>
-        <div className="flex items-center justify-center gap-2 mt-1.5 text-sm">
-          <span style={{ color: conf.color }}>{conf.label}</span>
-          <span className="text-mute">· Group {o.groupId}</span>
+        <div className="text-7xl mb-1 leading-none">{me.emoji}</div>
+        <h1 className="text-4xl sm:text-5xl font-black tracking-tight">{me.name}</h1>
+        <p className="text-mute mt-2 max-w-md mx-auto">{me.desc}</p>
+
+        {/* trait chips */}
+        <div className="flex justify-center gap-2 mt-4">
+          {me.traits.map((t, i) => (
+            <span
+              key={i}
+              className="text-xs font-bold px-3 py-1 rounded-full"
+              style={{ background: `${AXIS_COLOR[i === 0 ? me.key : me.secondKey]}22`, color: AXIS_COLOR[i === 0 ? me.key : me.secondKey] }}
+            >
+              {t}
+            </span>
+          ))}
         </div>
 
-        <div className="my-5">
-          <div className="text-6xl font-black wordmark">{top.pctMatch}%</div>
-          <div className="text-xs text-mute uppercase tracking-widest">soulmate match</div>
+        {/* superpower / flaw / rarity */}
+        <div className="grid grid-cols-3 gap-2 mt-5 text-left">
+          <IdBox label="💪 Superpower" value={me.superpower} />
+          <IdBox label="🩹 Fatal flaw" value={me.flaw} />
+          <IdBox label="🦄 Rarity" value={`~${me.rarity}% of fans`} />
         </div>
+      </div>
 
-        <p className="text-mute italic max-w-md mx-auto">“{team.blurb}”</p>
+      {/* SPIRIT TEAM — the fun detail */}
+      <div className="card p-5 mt-4 flex items-center gap-4">
+        <div className="text-5xl">{team.flag}</div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[10px] text-mute uppercase tracking-widest">Your spirit team</div>
+          <div className="font-extrabold text-xl leading-tight">{team.name}</div>
+          <div className="text-xs text-mute">
+            <span style={{ color: conf.color }}>{conf.label}</span> · Group {o.groupId} ·{" "}
+            ⭐ {team.stars[0]} ·{" "}
+            {top.nextOpponentId ? `next vs ${getTeam(top.nextOpponentId).name}` : "into the knockouts"}
+          </div>
+        </div>
+        <div className="text-right shrink-0">
+          <div className="text-3xl font-black wordmark">{top.pctMatch}%</div>
+          <div className="text-[10px] text-mute uppercase tracking-widest">match</div>
+        </div>
       </div>
 
       {/* why */}
       <div className="card p-5 mt-4">
         <div className="text-[11px] font-bold uppercase tracking-widest text-emerald mb-2">
-          Why you two belong together
+          Why {team.name} is your spirit team
         </div>
         <ul className="space-y-2">
           {top.reasons.map((r, i) => (
@@ -298,16 +322,6 @@ function Result({
             </li>
           ))}
         </ul>
-      </div>
-
-      {/* the goods */}
-      <div className="grid sm:grid-cols-3 gap-3 mt-4">
-        <Mini label="⭐ Watch for" value={team.stars[0]} />
-        <Mini label="📊 To reach knockouts" value={pct(o.pAdvance)} />
-        <Mini
-          label="🗓️ Next up"
-          value={top.nextOpponentId ? `vs ${getTeam(top.nextOpponentId).name}` : "Knockouts await"}
-        />
       </div>
 
       {/* compatibility breakdown */}
@@ -356,11 +370,11 @@ function Result({
 
       <div className="flex flex-wrap gap-3 mt-6 justify-center">
         <button onClick={share} className="px-5 py-2.5 rounded-xl bg-emerald text-black font-bold text-sm hover:brightness-110 transition">
-          Share my soulmate
+          Share my Fan ID
         </button>
         <a
           href={cardUrl}
-          download={`world-cup-soulmate-${top.teamId}.png`}
+          download={`my-fan-id-${me.key}.png`}
           className="px-5 py-2.5 rounded-xl border border-emerald/40 text-emerald font-semibold text-sm hover:bg-emerald/10 transition"
         >
           ⬇ Download my card
@@ -379,11 +393,11 @@ function Result({
   );
 }
 
-function Mini({ label, value }: { label: string; value: string }) {
+function IdBox({ label, value }: { label: string; value: string }) {
   return (
-    <div className="card p-3 text-center">
+    <div className="bg-white/[0.03] rounded-xl p-3">
       <div className="text-[10px] text-mute uppercase tracking-wide">{label}</div>
-      <div className="font-bold text-sm mt-0.5">{value}</div>
+      <div className="font-semibold text-xs mt-1 leading-snug">{value}</div>
     </div>
   );
 }

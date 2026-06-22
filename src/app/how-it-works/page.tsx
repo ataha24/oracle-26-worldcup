@@ -86,7 +86,7 @@ export default function HowItWorksPage() {
             Soulmate matcher
           </a>{" "}
           looks like a fun personality quiz. Secretly, it&apos;s a little linear algebra in a
-          trench coat. Here&apos;s exactly what happens to your five taps — formulas and all.
+          trench coat. Here&apos;s exactly what happens to your six taps — formulas and all.
         </p>
       </header>
 
@@ -220,17 +220,26 @@ match = argmax  ( affinity(you, team)  +  calibrationBias(team) )`}
             but we keep <em>two</em> different normalized copies of each team, for two different jobs.
           </p>
           <p>
-            <strong className="text-white">For the display bars</strong> we use classic{" "}
-            <span className="text-cyan">min-max</span>: find each axis&apos;s min and max{" "}
-            <em>across all 48 teams</em> and squash every value into a tidy 0-to-1 range. This is
-            purely cosmetic — it&apos;s what fills the little colored bars on your result.
+            <strong className="text-white">For the display bars</strong> we use a{" "}
+            <span className="text-cyan">percentile rank</span>: on each axis we ask &ldquo;what
+            fraction of the 48 teams does this one beat?&rdquo; That gives a tidy 0-to-1 bar that
+            reflects where a team <em>stands in the field</em> — and, unlike raw min-max, one freak
+            outlier (a 7–1 thumping) can&apos;t stretch the scale and crush everyone else.
           </p>
           <Code>
-{`displayBar(x) = (x − min) / (max − min)     // 0…1, for the result UI only
+{`displayBar(team, axis) = (# of teams ranked below it) / 47     // 0…1, for the UI
 
-min  → 0.0   (the lowest team on that axis)
-max  → 1.0   (the highest team on that axis)`}
+0.0  → lowest team on that axis
+1.0  → highest team on that axis`}
           </Code>
+          <p className="text-mute">
+            The same idea decides a team&apos;s <strong className="text-white">defining traits</strong> —
+            the two it&apos;s most <em>distinctive</em> on (highest z-score), which power the
+            &ldquo;why this is your team&rdquo; lines. That&apos;s why Brazil reads as{" "}
+            <span style={{ color: AXIS_COLOR.glory }}>glory</span>, not{" "}
+            <span style={{ color: AXIS_COLOR.grit }}>grit</span>: lots of teams concede few goals
+            early on, so a tidy defence isn&apos;t <em>distinctive</em> — pedigree is.
+          </p>
           <p>
             <strong className="text-white">For the actual matching</strong> we use{" "}
             <span className="text-cyan">z-scores</span> (standardization). For each axis we compute
@@ -267,15 +276,14 @@ result: each axis now has mean 0 and std 1`}
             adds to <span style={{ color: AXIS_COLOR.glory }}>glory</span>; &ldquo;I fall for a lost
             cause every time&rdquo; adds to <span style={{ color: AXIS_COLOR.fairytale }}>fairytale</span>{" "}
             (and a little <span style={{ color: AXIS_COLOR.heartbreak }}>heartbreak</span>). We sum
-            those weights across all five questions, then divide by your largest component so your
-            vector also lives in a friendly 0…1 range:
+            those weights across all six questions — and since the match (next step) only cares about
+            the <em>shape</em> of your vector, not its size, that running total is all we need:
           </p>
           <Code>
-{`sum   = Σ answer weights, per axis
-you   = sum / max(sum)        // scaled by your strongest trait
+{`you = Σ answer weights, per axis
 
 // e.g. an underdog-leaning run might produce
-you = (glory 0.0, firepower 0.0, grit 0.0, fairytale 1.0, heartbreak 0.6)`}
+you = (glory 0.0, firepower 0.0, grit 0.0, fairytale 1.7, heartbreak 0.6)`}
           </Code>
           <p className="text-mute">
             Now you and every team are described the exact same way: five numbers, same scale, same
@@ -323,13 +331,21 @@ affinity(you, team) = cos( center(you), center(teamZ) )
             <C>affinity(weights, teamId)</C>.
           </p>
           <p>
-            Last touch — a raw correlation of <C>0.91</C> isn&apos;t very romantic to read. So we
-            remap the final score into a friendlier <span className="text-emerald">70–99%</span>{" "}
-            band before showing it:
+            Last touch — the <strong className="text-white">match %</strong>. We map the raw
+            correlation (which in practice runs ~0.45 up to ~1.0) onto a friendlier scale. Note this
+            is the <em>actual strength of fit</em>, not your rank — so it genuinely{" "}
+            <strong className="text-white">varies</strong>:
           </p>
-          <Code>{`pctMatch = round(70 + 29 · (score − min) / (max − min))`}</Code>
+          <Code>
+{`t        = clamp( (affinity − 0.45) / 0.55, 0, 1 )
+pctMatch = clamp( round(62 + 36 · t^1.5), 58, 99 )`}
+          </Code>
           <p className="text-mute">
-            Nobody&apos;s soulmate should feel like a 12% match. Everyone gets a little love.
+            Answer with a clear, consistent personality and you&apos;ll correlate hard with one team
+            → a match in the 90s. Spread your taps across every trait and no single team fits as
+            cleanly → a more honest 60s–70s. Over all 4096 possible quizzes the top match spans{" "}
+            <C color="var(--color-emerald)">62–98%</C> (median ~85) — so &ldquo;99%&rdquo; means
+            something again, instead of being everyone&apos;s default.
           </p>
         </div>
       </section>
@@ -407,6 +423,56 @@ affinity(you, team) = cos( center(you), center(teamZ) )
           <p className="text-mute">
             All of this lives in <C>scripts/calibrate-match.ts</C> and gets regenerated whenever the
             underlying data changes — so the field stays balanced as results roll in.
+          </p>
+        </div>
+      </section>
+
+      {/* 5c. rarity tiers */}
+      <section className="rise mb-12">
+        <SectionTitle
+          kicker="Step 5 · Rarity"
+          title="Your Fan ID's rarity tier — also real"
+          desc="The 'only X% of fans are this type' on your card isn't invented. It's counted."
+        />
+        <div className="card p-5 space-y-3 text-sm leading-relaxed">
+          <p>
+            Your <strong className="text-white">type</strong> is your top two traits — your dominant
+            axis plus your runner-up (e.g. <C>heartbreak + grit</C>). Because we already enumerate the
+            entire <C>4096</C>-path universe for calibration, we can just{" "}
+            <strong className="text-white">count</strong> exactly how often each type comes up. No
+            guessing — these are true population shares.
+          </p>
+          <Code>
+{`for each of the 4096 quiz paths:
+  type = (top axis) + (2nd axis)
+  count[type] += 1
+share[type] = count[type] / 4096      // the real rarity`}
+          </Code>
+          <p>
+            Across the 20 possible types the shares run from{" "}
+            <C color="var(--color-gold)">0.7%</C> (heartbreak + grit — the rarest wiring) up to{" "}
+            <C>13.8%</C> (glory + firepower — the crowd favourite). We bucket that share into a
+            collectible-card tier:
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {[
+              { e: "🌟", n: "LEGENDARY", c: "var(--color-gold)", t: "≤ 2%" },
+              { e: "💎", n: "EPIC", c: "var(--color-violet)", t: "≤ 4.5%" },
+              { e: "🔷", n: "RARE", c: "var(--color-cyan)", t: "≤ 8.5%" },
+              { e: "🟢", n: "COMMON", c: "var(--color-emerald)", t: "> 8.5%" },
+            ].map((tier) => (
+              <div key={tier.n} className="card p-3 text-center" style={{ boxShadow: `inset 0 3px 0 ${tier.c}` }}>
+                <div className="text-2xl">{tier.e}</div>
+                <div className="text-xs font-black tracking-widest mt-1" style={{ color: tier.c }}>
+                  {tier.n}
+                </div>
+                <div className="text-[11px] text-mute mt-0.5 font-mono">{tier.t}</div>
+              </div>
+            ))}
+          </div>
+          <p className="text-mute">
+            So a 🌟 LEGENDARY badge genuinely means fewer than 1 in 50 possible fans share your exact
+            wiring. The flex is earned.
           </p>
         </div>
       </section>

@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Grand Rounds · KOR vs RSA · ORACLE '26 General Hospital</title>
+<style>
+  :root{
+    --paper:#f4f7f6; --ink:#0f2c2a; --teal:#0aa39a; --teal-d:#067b74;
+    --scrub:#2bb3a3; --alert:#e2455b; --amber:#e8a13a; --line:#cfe0dd;
+    --kor:#cd2e3a; --rsa:#007a4d; --mono:'Courier New',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    background:#06201e; color:var(--ink); overflow:hidden;
+  }
+  /* deck */
+  .deck{height:100vh;width:100vw;position:relative}
+  .slide{
+    position:absolute;inset:0;display:none;flex-direction:column;
+    padding:5vh 7vw;overflow:hidden;
+    background:
+      repeating-linear-gradient(0deg,transparent 0 38px,rgba(10,163,154,.05) 38px 39px),
+      var(--paper);
+  }
+  .slide.active{display:flex;animation:in .45s cubic-bezier(.22,1,.36,1)}
+  @keyframes in{from{opacity:0;transform:translateY(18px) scale(.99)}to{opacity:1;transform:none}}
+  /* chrome */
+  .chart-head{display:flex;justify-content:space-between;align-items:center;
+    border-bottom:3px solid var(--teal);padding-bottom:10px;margin-bottom:24px;
+    font-family:var(--mono);font-size:13px;color:var(--teal-d);letter-spacing:.05em}
+  .chart-head .logo{font-weight:bold;display:flex;gap:8px;align-items:center}
+  .chart-head .heart{color:var(--alert)}
+  h1{font-size:clamp(28px,5vw,64px);margin:.1em 0;line-height:1.02;letter-spacing:-.02em}
+  h2{font-size:clamp(22px,3.4vw,40px);margin:0 0 .4em;letter-spacing:-.01em}
+  .kicker{font-family:var(--mono);color:var(--alert);font-weight:bold;
+    text-transform:uppercase;letter-spacing:.25em;font-size:clamp(11px,1.4vw,15px)}
+  p,li{font-size:clamp(15px,1.7vw,21px);line-height:1.5}
+  .mut{color:#5c7a76}
+  .mono{font-family:var(--mono)}
+  .fill{flex:1;display:flex;flex-direction:column;justify-content:center}
+  .center{align-items:center;text-align:center}
+  /* cards */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px;
+    box-shadow:0 10px 30px -18px rgba(6,123,116,.5)}
+  .card.kor{border-top:6px solid var(--kor)} .card.rsa{border-top:6px solid var(--rsa)}
+  .pill{display:inline-block;font-family:var(--mono);font-size:12px;font-weight:bold;
+    padding:3px 10px;border-radius:999px;background:#e6f4f2;color:var(--teal-d);letter-spacing:.05em}
+  .pill.red{background:#fde3e7;color:var(--alert)} .pill.amber{background:#fbeed6;color:#9a6b16}
+  .pill.green{background:#dff3e8;color:#0a7a45}
+  .wrist{display:inline-flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);
+    border-radius:999px;padding:6px 14px 6px 8px;font-family:var(--mono);font-size:14px;box-shadow:0 4px 14px -8px #067b74}
+  .wrist .dot{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:14px}
+  table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:clamp(13px,1.6vw,18px)}
+  th,td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--line)}
+  th{color:var(--teal-d);font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+  td.n,th.n{text-align:center}
+  tr.hi{background:#eafaf6}
+  /* data list */
+  .dl{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-family:var(--mono);font-size:clamp(13px,1.5vw,17px)}
+  .dl dt{color:var(--teal-d)} .dl dd{margin:0;font-weight:bold}
+  /* bars */
+  .bar{height:26px;border-radius:6px;background:#e7efed;overflow:hidden;position:relative;margin:6px 0}
+  .bar>span{height:100%;border-radius:6px;display:flex;align-items:center;
+    justify-content:flex-end;padding-right:8px;color:#fff;font-family:var(--mono);font-weight:bold;
+    font-size:13px;white-space:nowrap;min-width:max-content}
+  /* ekg */
+  .ekg{height:70px;width:100%;overflow:hidden}
+  .ekg svg{width:200%;height:70px;display:block;animation:scan 3.5s linear infinite}
+  @keyframes scan{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+  .ekg path{fill:none;stroke:var(--alert);stroke-width:3}
+  /* rx pad */
+  .rx{background:repeating-linear-gradient(0deg,#fff 0 31px,#eef6f4 31px 32px);
+    border:1px solid var(--line);border-radius:10px;padding:18px 22px;font-family:var(--mono)}
+  .rx .sym{font-size:40px;color:var(--teal-d);font-weight:bold;line-height:.6}
+  .stamp{display:inline-block;border:3px solid var(--alert);color:var(--alert);
+    font-family:var(--mono);font-weight:bold;padding:6px 14px;border-radius:8px;
+    transform:rotate(-7deg);letter-spacing:.1em;text-transform:uppercase}
+  .stamp.green{border-color:#0a7a45;color:#0a7a45}
+  /* footer / nav */
+  .foot{position:absolute;bottom:14px;left:0;right:0;display:flex;justify-content:space-between;
+    align-items:center;padding:0 7vw;font-family:var(--mono);font-size:12px;color:#7a948f}
+  .dots{display:flex;gap:6px}
+  .dots button{width:9px;height:9px;border-radius:50%;border:none;background:#bcd4d0;cursor:pointer;padding:0}
+  .dots button.on{background:var(--teal);transform:scale(1.35)}
+  .nav{position:absolute;bottom:10px;right:7vw;display:flex;gap:8px}
+  .nav button{font-family:var(--mono);border:1px solid var(--teal);background:#fff;color:var(--teal-d);
+    border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:bold}
+  .nav button:hover{background:var(--teal);color:#fff}
+  .big{font-size:clamp(40px,8vw,96px);font-weight:800;line-height:1;letter-spacing:-.03em}
+  .joke{font-style:italic;color:var(--teal-d)}
+  .tag{font-family:var(--mono);font-size:12px;color:#7a948f}
+  .vs{font-family:var(--mono);font-weight:bold;color:var(--alert);font-size:clamp(18px,3vw,32px)}
+  @media(max-width:760px){.grid2,.grid3{grid-template-columns:1fr}.slide{padding:4vh 6vw}}
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+  <!-- 1 TITLE -->
+  <section class="slide active">
+    <div class="chart-head"><span class="logo"><span class="heart">🫀</span> ORACLE '26 GENERAL HOSPITAL</span><span>DEPT. OF SPORTS PATHOLOGY · ROOM A</span></div>
+    <div class="fill center">
+      <div class="kicker">Grand Rounds · Morbidity &amp; Mortality Conference</div>
+      <h1>Two Patients,<br>One Hospital Bed</h1>
+      <p style="max-width:760px">A Group&nbsp;A case study in acute knockout-stage anxiety, featuring
+        <b style="color:var(--kor)">🇰🇷 Patient K. Republic</b> and
+        <b style="color:var(--rsa)">🇿🇦 Patient S. Africa</b>.</p>
+      <div class="ekg"><svg viewBox="0 0 800 70" preserveAspectRatio="none"><path d="M0,35 L120,35 L140,35 L150,10 L160,60 L172,35 L300,35 L320,35 L330,12 L342,58 L356,35 L520,35 L540,35 L550,10 L560,60 L572,35 L800,35"/></svg></div>
+      <p class="tag">Attending physician: Dr. Monte Carlo, MD (×50,000) · Press → to begin rounds</p>
+    </div>
+  </section>
+
+  <!-- 2 DISCLAIMER -->
+  <section class="slide">
+    <div class="chart-head"><span class="logo"><span class="heart">⚠️</span> INFORMED CONSENT</span><span>FORM 4-4-2 (REV.)</span></div>
+    <div class="fill">
+      <div class="kicker">Please read before rounds</div>
+      <h2>Standard hospital disclaimer</h2>
+      <ul style="max-width:900px">
+        <li>This presentation contains graphic depictions of <b>defending</b>, <b>penalties</b>, and <b>added time</b>. Viewer discretion advised.</li>
+        <li>All probabilities derived from <b>50,000 simulated tournaments</b> — the world's most expensive MRI. No teams were harmed (yet).</li>
+        <li>Do <b>not</b> administer a vuvuzela to any patient with a history of hypertension.</li>
+        <li class="joke">Side effects of fandom may include: elevated heart rate, irrational optimism, and spontaneous shouting at televisions.</li>
+      </ul>
+      <p class="stamp">Not actual medical advice</p>
+    </div>
+  </section>
+
+  <!-- 3 PATIENT KOR INTAKE -->
+  <section class="slide">
+    <div class="chart-head"><span class="logo">📋 PATIENT INTAKE</span><span>BED A2 · ADMITTED 2026-06-11</span></div>
+    <h2>Patient A — <span style="color:var(--kor)">🇰🇷 “The Republic of Korea”</span></h2>
+    <div class="grid2 fill">
+      <div class="card kor">
+        <span class="wrist"><span class="dot" style="background:var(--kor)">K</span> KOR · DOB: 1948 · AFC</span>
+        <dl class="dl" style="margin-top:18px">
+          <dt>Age (appearances)</dt><dd>12 World Cups</dd>
+          <dt>BP (Elo rating)</dt><dd>1760 — borderline elite</dd>
+          <dt>FIFA rank</dt><dd>#24</dd>
+          <dt>Resting HR (form)</dt><dd>↑ trending warm</dd>
+          <dt>Chief complaint</dt><dd>“We always go home early.”</dd>
+        </dl>
+      </div>
+      <div class="card">
+        <p class="pill red">Allergies</p>
+        <p><b>Penalty shootouts</b> (severe). <b>Set pieces</b> (seasonal).</p>
+        <p class="pill">Current medications</p>
+        <p class="mono">• Son Heung-min 100mg, captain-released<br>• Lee Kang-in (creativity, PRN)<br>• Kim Min-jae (topical, for defensive inflammation)</p>
+        <p class="joke">Family hx notable for one (1) miraculous semifinal, 2002 — strongly suspected congenital home-field advantage.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 PATIENT RSA INTAKE -->
+  <section class="slide">
+    <div class="chart-head"><span class="logo">📋 PATIENT INTAKE</span><span>BED A4 · ADMITTED 2026-06-11</span></div>
+    <h2>Patient B — <span style="color:var(--rsa)">🇿🇦 “Bafana Bafana”</span></h2>
+    <div class="grid2 fill">
+      <div class="card rsa">
+        <span class="wrist"><span class="dot" style="background:var(--rsa)">S</span> RSA · DOB: 1992 · CAF</span>
+        <dl class="dl" style="margin-top:18px">
+          <dt>Age (appearances)</dt><dd>4 World Cups</dd>
+          <dt>BP (Elo rating)</dt><dd>1700 — mildly hypotensive</dd>
+          <dt>FIFA rank</dt><dd>#56</dd>
+          <dt>Resting HR (form)</dt><dd>↑↑ fearless &amp; revitalized</dd>
+          <dt>Chief complaint</dt><dd>“Just happy to be here, doc.”</dd>
+        </dl>
+      </div>
+      <div class="card">
+        <p class="pill amber">Allergies</p>
+        <p><b>Expectations</b> (mild). <b>Clinical finishing</b> (intermittent).</p>
+        <p class="pill">Current medications</p>
+        <p class="mono">• Lyle Foster 80mg up top<br>• Percy Tau (wing infusion)<br>• Themba Zwane (slow-release veteran)</p>
+        <p class="joke">PMHx: hosted the entire 2010 ward. Chronic vuvuzela exposure. Has never been discharged past the group stage.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 VITALS -->
+  <section class="slide">
+    <div class="chart-head"><span class="logo">🩺 VITAL SIGNS</span><span>NURSING STATION · GROUP A</span></div>
+    <h2>Comparative vitals</h2>
+    <div class="fill">
+      <table>
+        <tr><th>Vital</th><th>🇰🇷 KOR</th><th>🇿🇦 RSA</th><th>Clinical note</th></tr>
+        <tr><td>Blood pressure (Elo)</td><td class="mono">1760</td><td class="mono">1700</td><td class="mut">both technically hypertensive “with aspirations”</td></tr>
+        <tr><td>BMI (FIFA rank)</td><td class="mono">#24</td><td class="mono">#56</td><td class="mut">KOR is in better shape; RSA “big-boned”</td></tr>
+        <tr><td>Temperature (form)</td><td class="mono">99.2°F ↑</td><td class="mono">100.1°F ↑↑</td><td class="mut">RSA running a fever of belief</td></tr>
+        <tr class="hi"><td>Pulse (this group)</td><td class="mono">2 pts — alive</td><td class="mono">1 pt — faint</td><td class="mut">palpable, irregular</td></tr>
+      </table>
+      <div class="ekg" style="margin-top:18px"><svg viewBox="0 0 800 70" preserveAspectRatio="none"><path d="M0,35 L100,35 L112,18 L124,52 L136,35 L260,35 L280,35 L292,8 L304,62 L318,35 L520,35 L540,35 L552,18 L564,52 L576,35 L800,35"/></svg></div>
+      <p class="tag">Both patients are stable. Neither is comfortable.</p>
+    </div>
+  </section>
+
+  <!-- 6 LABS -->
+  <section class="slide">
+    <div class="chart-head"><span class="logo">🧪 LAB RESULTS</span><span>GROUP A BLOODWORK · AFTER 2 ROUNDS</span></div>
+    <h2>Group A panel (the bloodwork)</h2>
+    <div class="fill">
+      <table>
+        <tr><th>Pos</th><th>Patient</th><th class="n">Pl</th><th class="n">GF:GA</th><th class="n">GD</th><th class="n">Pts</th><th>Status</th></tr>
+        <tr><td>1</td><td>🇲🇽 Mexico</td><td class="n">2</td><td class="n">3:0</td><td class="n">+3</td><td class="n">6</td><td><span class="pill green">healthy control</span></td></tr>
+        <tr class="hi"><td>2</td><td>🇰🇷 South Korea</td><td class="n">2</td><td class="n">2:2</td><td class="n">0</td><td class="n">3</td><td><span class="pill">stable</span></td></tr>
+        <tr><td>3</td><td>🇨🇿 Czechia</td><td class="n">2</td><td class="n">2:3</td><td class="n">−1</td><td class="n">1</td><td><span class="pill amber">guarded</span></td></tr>
+        <tr class="hi"><td>4</td><td>🇿🇦 South Africa</td><td class="n">2</td><td class="n">1:3</td><td class="n">−2</td><td class="n">1</td><td><span class="pill red">critical</span></td></tr>
+      </table>
+      <p style="margin-top:18px">Chart review: KOR responded well to <b>Czechia 2–1</b> but had an adverse reaction to <b>Mexico (0–1)</b>. RSA presented with <b>Mexico 0–2</b>, then stabilized with a <b>1–1</b> against Czechia. Mexico, the healthy control, has been discharged early to the knockouts and keeps asking when visiting hours are.</p>
+    </div>
+  </section>
+
+  <!-- 7 THE OPERATION -->
+  <section class="slide">
+    <div class="chart-head"><span class="logo">🔪 SURGERY SCHEDULED</span><span>OR-A · FINAL GROUP ROUND</span></div>
+    <div class="fill center">
+      <div class="kicker">Code Blue — elective procedure</div>
+      <h2>🇰🇷 South Korea &nbsp;<span class="vs">vs</span>&nbsp; South Africa 🇿🇦</h2>
+      <p style="max-width:820px">The two patients are wheeled into the same operating room to determine who receives <b>the last available knockout bed</b>. There is only one. Anesthesia has been notified.</p>
+      <div style="width:min(760px,90%);margin-top:8px">
+        <div class="bar"><span style="width:45.9%;background:var(--kor)">KOR 45.9%</span></div>
+        <div class="bar"><span style="width:25.6%;background:#7a948f">DRAW 25.6%</span></div>
+        <div class="bar"><span style="width:28.5%;background:var(--rsa)">RSA 28.5%</span></div>
+      </div>
+      <p class="mono" style="margin-top:12px">Expected goals (fluid output): KOR 1.51 — 1.14 RSA · Prognosed scoreline: <b>1–1</b> · Over 2.5 goals 49% · Both bleed (BTTS) 53%</p>
+      <p class="joke">Prognosis: a tense, low-scoring operation. Bring a defibrillator and a neutral.</p>
+    </div>
+  </section>
+
+  <!-- 8 PROGNOSIS / SURVIVAL -->
+  <section class="slide">
+    <div class="chart-head"><span class="logo">📈 PROGNOSIS</span><span>KAPLAN–MEIER (TOURNAMENT SURVIVAL)</span></div>
+    <h2>Survival curves</h2>
+    <div class="grid2 fill">
+      <div class="card kor">
+        <p><b style="color:var(--kor)">🇰🇷 South Korea</b> — <span class="pill green">guarded, optimistic</span></p>
+        <div class="bar"><span style="width:90%;background:var(--kor)">Knockouts · 90.2%</span></div>
+        <div class="bar"><span style="width:35.7%;background:var(--kor)">R16 · 35.7%</span></div>
+        <div class="bar"><span style="width:8.6%;background:var(--kor)">QF · 8.6%</span></div>
+        <div class="bar"><span style="width:1.3%;background:var(--kor)">SF · 1.3%</span></div>
+        <p class="mono mut">Title odds: 0.018% — “there’s a chance.”</p>
+      </div>
+      <div class="card rsa">
+        <p><b style="color:var(--rsa)">🇿🇦 South Africa</b> — <span class="pill red">critical, miracle not ruled out</span></p>
+        <div class="bar"><span style="width:28.6%;background:var(--rsa)">28.6%</span></div>
+        <div class="bar"><span style="width:8.8%;background:var(--rsa)">R16 · 8.8%</span></div>
+        <div class="bar"><span style="width:1.6%;background:var(--rsa)">QF · 1.6%</span></div>
+        <div class="bar"><span style="width:1.5%;background:var(--rsa)">SF · 0.13%</span></div>
+        <p class="mono mut">Title odds: 0.002% — family has been notified.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 RX -->
+  <section class="slide">
+    <div class="chart-head"><span class="logo">💊 PRESCRIPTIONS</span><span>PHARMACY · DO NOT OVERDOSE ON HOPE</span></div>
+    <h2>Treatment plan</h2>
+    <div class="grid2 fill">
+      <div class="rx">
+        <div style="display:flex;justify-content:space-between"><span class="sym">℞</span><span class="mono" style="color:var(--kor)">Pt: KOR</span></div>
+        <p class="mono">Sig: <b>Son Heung-min 100mg</b> IV, push hard in the<br>final 30 minutes.<br><br>
+        <b>Defensive line</b> — take with food, do NOT skip vs Mexico.<br><br>
+        Avoid penalties. If unavoidable, look away.<br><br>Refills: until 2030.</p>
+        <p class="mono mut">— Dr. M. Carlo</p>
+      </div>
+      <div class="rx">
+        <div style="display:flex;justify-content:space-between"><span class="sym">℞</span><span class="mono" style="color:var(--rsa)">Pt: RSA</span></div>
+        <p class="mono">Sig: <b>Beat South Korea.</b> That’s the whole script.<br><br>
+        <b>Lyle Foster</b> 80mg, must convert chances PO.<br><br>
+        Apply <b>pace</b> liberally to both flanks.<br><br>One (1) miracle, as needed. Stock is limited.</p>
+        <p class="mono mut">— Dr. M. Carlo</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 DISCHARGE -->
+  <section class="slide">
+    <div class="chart-head"><span class="logo">🏥 DISCHARGE SUMMARY</span><span>SIGN HERE ____________</span></div>
+    <div class="fill center">
+      <div class="kicker">Impression</div>
+      <h1 style="max-width:1000px">One patient likely walks out.<br>One likely goes home.</h1>
+      <p style="max-width:820px"><b>🇰🇷 KOR:</b> favoured to survive the operation and be discharged to the Round of 32 (90% advance). Long-term prognosis: chronic “fourth-place syndrome,” currently in remission.</p>
+      <p style="max-width:820px"><b>🇿🇦 RSA:</b> needs the win and is the underdog on the table (29%). But Bafana Bafana have never read their own chart, and that’s the dangerous part.</p>
+      <p style="margin-top:14px"><span class="stamp green">Prognosis: thrilling</span></p>
+    </div>
+  </section>
+
+  <!-- 11 CLOSE -->
+  <section class="slide">
+    <div class="chart-head"><span class="logo"><span class="heart">🫀</span> ORACLE '26 GENERAL HOSPITAL</span><span>END OF ROUNDS</span></div>
+    <div class="fill center">
+      <div class="big">Questions?</div>
+      <p class="joke" style="max-width:760px">(The patients have many. Mostly “why us” and “how is it still 1–1.”)</p>
+      <div class="ekg" style="max-width:700px"><svg viewBox="0 0 800 70" preserveAspectRatio="none"><path d="M0,35 L130,35 L150,12 L162,58 L176,35 L330,35 L350,10 L362,60 L376,35 L800,35"/></svg></div>
+      <p class="tag">Data: ORACLE '26 engine · Elo → Poisson → 50,000 Monte-Carlo simulations · results through 2026-06-21</p>
+      <p class="tag">Thank you for attending. Please wash your hands and your defending.</p>
+    </div>
+  </section>
+
+</div>
+
+<div class="foot">
+  <span class="mono" id="pageno">01 / 11</span>
+  <div class="dots" id="dots"></div>
+  <span class="mono">← / → to navigate</span>
+</div>
+<div class="nav">
+  <button onclick="go(-1)">◀ Prev</button>
+  <button onclick="go(1)">Next ▶</button>
+</div>
+
+<script>
+  const slides=[...document.querySelectorAll('.slide')];
+  let i=0;
+  const dots=document.getElementById('dots');
+  slides.forEach((_,k)=>{const b=document.createElement('button');b.onclick=()=>show(k);dots.appendChild(b)});
+  function show(n){
+    i=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach((s,k)=>s.classList.toggle('active',k===i));
+    [...dots.children].forEach((d,k)=>d.classList.toggle('on',k===i));
+    document.getElementById('pageno').textContent=String(i+1).padStart(2,'0')+' / '+String(slides.length).padStart(2,'0');
+  }
+  function go(d){show(i+d)}
+  addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){go(1);e.preventDefault()}
+    if(e.key==='ArrowLeft'||e.key==='PageUp'){go(-1);e.preventDefault()}
+    if(e.key==='Home')show(0); if(e.key==='End')show(slides.length-1);
+  });
+  // tap right/left half on touch
+  addEventListener('click',e=>{ if(e.target.closest('.nav,.dots'))return;
+    go(e.clientX > innerWidth/2 ? 1 : -1);
+  });
+  show(0);
+</script>
+</body>
+</html>

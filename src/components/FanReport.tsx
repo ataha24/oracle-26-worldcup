@@ -1,6 +1,6 @@
 import { getTeam } from "@/lib/data/teams";
 import { oddsFor } from "@/lib/forecast";
-import { matchTeams, TEAM_VIBES, AXES, type Vibe, type Axis } from "@/lib/match/vibes";
+import { matchTeams, TEAM_RANK, AXES, type Vibe, type Axis } from "@/lib/match/vibes";
 import { fanIdentity } from "@/lib/match/persona";
 import { getLore } from "@/lib/data/lore";
 import { CONF_META } from "@/lib/format";
@@ -35,7 +35,7 @@ export function FanReport({ userVibe }: { userVibe: Vibe }) {
   const team = getTeam(top.teamId);
   const o = oddsFor(top.teamId);
   const conf = CONF_META[team.confederation];
-  const vibe = TEAM_VIBES[top.teamId];
+  const vibe = TEAM_RANK[top.teamId];
   const me = fanIdentity(userVibe);
   const lore = getLore(top.teamId);
   const tasteMax = Math.max(...AXES.map((k) => userVibe[k]), 1e-9);

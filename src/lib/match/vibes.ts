@@ -98,6 +98,25 @@ export const TEAM_Z: Record<string, Vibe> = Object.fromEntries(
   ]),
 );
 
+// per-axis percentile rank (0..1) — robust, evenly-spread DISPLAY of how a team
+// ranks vs the whole field on each trait. Used for the personality bars so they
+// reflect distinctiveness (what a team is known for), consistent with matching.
+const SORTED_AXIS: Record<Axis, number[]> = Object.fromEntries(
+  AXES.map((k) => [k, TEAMS.map((t) => RAW[t.id][k]).sort((a, b) => a - b)]),
+) as Record<Axis, number[]>;
+function percentile(axis: Axis, value: number): number {
+  const arr = SORTED_AXIS[axis];
+  let below = 0;
+  for (const v of arr) if (v < value) below++;
+  return arr.length > 1 ? below / (arr.length - 1) : 0.5;
+}
+export const TEAM_RANK: Record<string, Vibe> = Object.fromEntries(
+  TEAMS.map((t) => [
+    t.id,
+    Object.fromEntries(AXES.map((k) => [k, percentile(k, RAW[t.id][k])])) as Vibe,
+  ]),
+);
+
 const BIAS: Record<string, number> = (CAL as { biases: Record<string, number> }).biases ?? {};
 
 // ---- shape vectors: each team's z-profile centered across its OWN 5 axes ----
@@ -162,8 +181,10 @@ export function matchTeams(weights: Vibe, topN = 3): MatchResult[] {
   const span = smax - smin || 1;
 
   return ranked.slice(0, topN).map(({ teamId, score }) => {
-    const vibe = TEAM_VIBES[teamId];
-    const topAxes = [...AXES].sort((a, b) => vibe[b] - vibe[a]).slice(0, 2);
+    // a team's DEFINING traits = where it's most distinctive (z-score), not its
+    // raw levels — so identities reflect real character (Brazil = glory, not grit).
+    const z = TEAM_Z[teamId];
+    const topAxes = [...AXES].sort((a, b) => z[b] - z[a]).slice(0, 2);
     const team = getTeam(teamId);
     const reasons = topAxes.map((ax) => AXIS_REASON[ax](team.name));
     let nextOpponentId: string | null = null;

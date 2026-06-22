@@ -4,6 +4,7 @@ import { TEAM_BY_ID } from "@/lib/data/teams";
 import { PERSONA, rarityFor } from "@/lib/match/persona";
 import { AXES, type Axis, type Vibe } from "@/lib/match/vibes";
 import { FanReport, decodeVibe } from "@/components/FanReport";
+import { ogTitle, ogDescription } from "@/lib/data/shareCopy";
 
 type SP = Promise<{ team?: string; persona?: string; t2?: string; pct?: string; v?: string }>;
 
@@ -28,8 +29,13 @@ function parse(sp: { team?: string; persona?: string; t2?: string; pct?: string;
 
 export async function generateMetadata({ searchParams }: { searchParams: SP }): Promise<Metadata> {
   const { team, persona, rarity, tier, cardUrl } = parse(await searchParams);
-  const title = `${tier.emoji} ${tier.name} — ${persona.emoji} ${persona.name}`;
-  const description = `Only ${rarity}% of fans are this type. Spirit team: ${team.name}. What's your World Cup Fan Personality? Find out with ORACLE '26.`;
+  const title = ogTitle({
+    personaName: persona.name,
+    personaEmoji: persona.emoji,
+    tierName: tier.name,
+    tierEmoji: tier.emoji,
+  });
+  const description = ogDescription({ rarity, teamName: team.name });
   return {
     title,
     description,

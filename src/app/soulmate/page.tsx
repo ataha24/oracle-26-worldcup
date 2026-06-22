@@ -2,10 +2,24 @@
 
 import { useMemo, useState } from "react";
 import { getTeam, TEAMS } from "@/lib/data/teams";
-import { matchTeams, rankTeams, type Vibe } from "@/lib/match/vibes";
+import { matchTeams, rankTeams, AXES, type Axis, type Vibe } from "@/lib/match/vibes";
 import { fanIdentity } from "@/lib/match/persona";
 import { QUESTIONS, leanFromAnswers, type Option } from "@/lib/match/quiz";
-import { FanReport, encodeVibe } from "@/components/FanReport";
+import { FanReport, encodeVibe, AXIS_COLOR, AXIS_LABEL } from "@/components/FanReport";
+import { FanWrapped } from "@/components/FanWrapped";
+import { shareMessage } from "@/lib/data/shareCopy";
+
+// short, fun reaction shown the instant you pick — by the option's dominant trait
+const REACTION: Record<Axis, string> = {
+  glory: "👑 Big-time energy.",
+  firepower: "🎆 You live for chaos.",
+  grit: "🛡️ Respect the grind.",
+  fairytale: "🌈 A romantic — noted.",
+  heartbreak: "🎭 Here to FEEL it all.",
+};
+function dominantAxis(o: Option): Axis {
+  return (Object.entries(o.w).sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))[0]?.[0] as Axis) ?? "glory";
+}
 
 // how many flags remain "in contention" after each answer — the field narrows
 const FIELD_AT = [48, 32, 20, 12, 6, 3, 1];
@@ -107,24 +121,42 @@ function QuestionCard({
 }) {
   const q = QUESTIONS[step];
   const answeredCount = answers.filter((a) => a !== null).length;
-  // field BEFORE this answer (based on answers so far)
   const fieldSize = FIELD_AT[Math.min(answeredCount, FIELD_AT.length - 1)];
+  const [picked, setPicked] = useState<number | null>(null);
+
+  // preview the vibe INCLUDING a hovered/picked option so the meter reacts live
+  const previewVibe = useMemo(() => {
+    if (picked === null) return userVibe;
+    const v = { ...userVibe };
+    const w = q.options[picked].w;
+    for (const k of AXES) v[k] += w[k] ?? 0;
+    return v;
+  }, [picked, userVibe, q]);
+
+  function choose(i: number) {
+    if (picked !== null) return;
+    setPicked(i);
+    setTimeout(() => onAnswer(q.options[i]), 750); // beat for the reaction
+  }
 
   return (
     <div className="rise">
       {/* progress */}
-      <div className="flex items-center gap-1.5 mb-5">
+      <div className="flex items-center gap-1.5 mb-4">
         {QUESTIONS.map((_, i) => (
           <div
             key={i}
             className="h-1.5 flex-1 rounded-full transition-colors"
-            style={{ background: i < step ? "var(--color-emerald)" : i === step ? "rgba(16,217,137,.45)" : "var(--color-line)" }}
+            style={{ background: i < step || (i === step && picked !== null) ? "var(--color-emerald)" : i === step ? "rgba(16,217,137,.45)" : "var(--color-line)" }}
           />
         ))}
       </div>
 
-      {/* the narrowing field */}
-      <FieldStrip userVibe={userVibe} size={fieldSize} hasAnswers={answeredCount > 0} />
+      {/* live: narrowing field + your forming personality */}
+      <div className="grid sm:grid-cols-2 gap-3">
+        <FieldStrip userVibe={previewVibe} size={picked !== null ? FIELD_AT[Math.min(answeredCount + 1, FIELD_AT.length - 1)] : fieldSize} hasAnswers={answeredCount > 0 || picked !== null} />
+        <TraitMeter userVibe={previewVibe} live={picked !== null} />
+      </div>
 
       <div className="text-xs font-semibold tracking-[0.2em] uppercase text-emerald mt-6 mb-1">
         {q.probes} · Q{step + 1} of {QUESTIONS.length}
@@ -132,16 +164,59 @@ function QuestionCard({
       <h2 className="text-2xl sm:text-3xl font-extrabold mb-1">{q.q}</h2>
       <p className="text-mute text-sm mb-5">🔍 {q.why}</p>
 
-      <div className="grid gap-3">
-        {q.options.map((o, i) => (
-          <button
-            key={i}
-            onClick={() => onAnswer(o)}
-            className="card p-4 text-left flex items-center gap-4 hover:border-emerald/50 hover:bg-white/[0.03] transition group"
-          >
-            <span className="text-3xl group-hover:scale-110 transition-transform">{o.emoji}</span>
-            <span className="font-medium">{o.label}</span>
-          </button>
+      <div className="grid gap-3 relative">
+        {q.options.map((o, i) => {
+          const isPicked = picked === i;
+          const dimmed = picked !== null && !isPicked;
+          return (
+            <button
+              key={i}
+              onClick={() => choose(i)}
+              disabled={picked !== null}
+              className="card p-4 text-left flex items-center gap-4 transition group enabled:hover:border-emerald/50 enabled:hover:bg-white/[0.03]"
+              style={{
+                borderColor: isPicked ? "var(--color-emerald)" : undefined,
+                background: isPicked ? "rgba(16,217,137,.10)" : undefined,
+                opacity: dimmed ? 0.4 : 1,
+                transform: isPicked ? "scale(1.02)" : "none",
+              }}
+            >
+              <span className="text-3xl group-hover:scale-110 transition-transform">{o.emoji}</span>
+              <span className="font-medium flex-1">{o.label}</span>
+              {isPicked && (
+                <span className="text-xs font-bold text-emerald whitespace-nowrap rise">
+                  {REACTION[dominantAxis(o)]}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/** live 5-axis "personality forming" meter */
+function TraitMeter({ userVibe, live }: { userVibe: Vibe; live: boolean }) {
+  const max = Math.max(...AXES.map((k) => userVibe[k]), 1e-9);
+  const any = AXES.some((k) => userVibe[k] > 0);
+  return (
+    <div className="card p-3">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10px] uppercase tracking-widest text-mute">Your personality, forming</span>
+        {live && <span className="text-[10px] font-bold text-emerald">＋</span>}
+      </div>
+      <div className="space-y-1.5">
+        {AXES.map((k) => (
+          <div key={k} className="flex items-center gap-2">
+            <span className="text-[10px] w-16 shrink-0 text-mute">{AXIS_LABEL[k]}</span>
+            <div className="flex-1 h-2 rounded-full bg-white/6 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${any ? (userVibe[k] / max) * 100 : 0}%`, background: AXIS_COLOR[k] }}
+              />
+            </div>
+          </div>
         ))}
       </div>
     </div>
@@ -210,16 +285,25 @@ function Result({
   const top = matches[0];
   const team = getTeam(top.teamId);
   const me = fanIdentity(userVibe);
+  const [wrapped, setWrapped] = useState(false);
   const params = `team=${top.teamId}&persona=${me.key}&t2=${me.secondKey}&pct=${top.pctMatch}&v=${encodeVibe(userVibe)}`;
   const cardUrl = `/api/card?${params}`;
   const shareUrl = `/soulmate/share?${params}`;
 
   async function share() {
     const url = typeof window !== "undefined" ? window.location.origin + shareUrl : shareUrl;
-    const text = `${me.tier.emoji} ${me.tier.name} Fan ID: ${me.emoji} ${me.name} — only ${me.rarity}% are this type. Spirit team: ${team.flag} ${team.name}. What's yours?`;
+    const text = shareMessage({
+      personaName: me.name,
+      personaEmoji: me.emoji,
+      tierName: me.tier.name,
+      tierEmoji: me.tier.emoji,
+      rarity: me.rarity,
+      teamName: team.name,
+      teamFlag: team.flag,
+    });
     try {
       if (navigator.share) {
-        await navigator.share({ title: "My World Cup Fan ID", text, url });
+        await navigator.share({ title: "My World Cup Fan Report", text, url });
       } else {
         await navigator.clipboard.writeText(`${text} ${url}`);
         alert("Link copied — go paste it and brag.");
@@ -231,6 +315,8 @@ function Result({
 
   return (
     <div className="rise">
+      {wrapped && <FanWrapped userVibe={userVibe} onClose={() => setWrapped(false)} />}
+
       {/* confetti */}
       <div className="relative h-0">
         {["🎉", "⚽", "✨", "🎊", "🏆", "💚", "✨", "⚽"].map((e, i) => (
@@ -248,9 +334,20 @@ function Result({
         ))}
       </div>
 
+      {/* play your wrapped — the headline interactive moment */}
+      <button
+        onClick={() => setWrapped(true)}
+        className="w-full mb-4 py-3 rounded-2xl font-bold text-black bg-gradient-to-r from-emerald via-cyan to-violet hover:brightness-110 transition shadow-[0_0_40px_-10px_var(--color-cyan)]"
+      >
+        ▶ Play your Fan Wrapped
+      </button>
+
       <FanReport userVibe={userVibe} />
 
       <div className="flex flex-wrap gap-3 mt-6 justify-center">
+        <button onClick={() => setWrapped(true)} className="px-5 py-2.5 rounded-xl border border-cyan/40 text-cyan font-semibold text-sm hover:bg-cyan/10 transition">
+          ▶ Replay Wrapped
+        </button>
         <button onClick={share} className="px-5 py-2.5 rounded-xl bg-emerald text-black font-bold text-sm hover:brightness-110 transition">
           Share my Fan ID
         </button>

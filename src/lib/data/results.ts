@@ -49,10 +49,11 @@ export const RESULTS: PlayedMatch[] = [
   { groupId: "F", home: "netherlands", away: "sweden", hg: 5, ag: 1, date: "2026-06-20" },
   { groupId: "F", home: "japan", away: "tunisia", hg: 4, ag: 0, date: "2026-06-20" },
 
-  // ---- Group G (round two in progress; NZ–Egypt not yet played) ----
+  // ---- Group G (two rounds played) ----
   { groupId: "G", home: "belgium", away: "egypt", hg: 1, ag: 1, date: "2026-06-15" },
   { groupId: "G", home: "iran", away: "new-zealand", hg: 2, ag: 2, date: "2026-06-15" },
   { groupId: "G", home: "belgium", away: "iran", hg: 0, ag: 0, date: "2026-06-21" },
+  { groupId: "G", home: "new-zealand", away: "egypt", hg: 1, ag: 3, date: "2026-06-21" },
 
   // ---- Group H (two rounds played) ----
   { groupId: "H", home: "spain", away: "cape-verde", hg: 0, ag: 0, date: "2026-06-15" },
@@ -64,9 +65,10 @@ export const RESULTS: PlayedMatch[] = [
   { groupId: "I", home: "france", away: "senegal", hg: 3, ag: 1, date: "2026-06-16" },
   { groupId: "I", home: "iraq", away: "norway", hg: 1, ag: 4, date: "2026-06-16" },
 
-  // ---- Group J (one round played) ----
+  // ---- Group J (two rounds; Jordan–Algeria still to play) ----
   { groupId: "J", home: "argentina", away: "algeria", hg: 3, ag: 0, date: "2026-06-16" },
   { groupId: "J", home: "austria", away: "jordan", hg: 3, ag: 1, date: "2026-06-16" },
+  { groupId: "J", home: "argentina", away: "austria", hg: 2, ag: 0, date: "2026-06-22" },
 
   // ---- Group K (one round played) ----
   { groupId: "K", home: "portugal", away: "dr-congo", hg: 1, ag: 1, date: "2026-06-17" },
@@ -91,8 +93,8 @@ export interface LiveMatch {
 }
 
 export const LIVE: LiveMatch[] = [
-  // New Zealand 1–1 Egypt — Group G, 2nd half (Surman header; Ziko equalised)
-  { groupId: "G", home: "new-zealand", away: "egypt", hg: 1, ag: 1, minute: 62 },
+  // No matches in progress right now. Add in-progress games here (or use the
+  // /live page's refresh button to pull them live from ESPN).
 ];
 
 /** key for an unordered pair of teams */
@@ -109,4 +111,4 @@ export const PLAYED_BY_PAIR: Record<string, PlayedMatch> = Object.fromEntries(
   RESULTS.map((m) => [pairKey(m.home, m.away), m]),
 );
 
-export const LAST_UPDATED = "2026-06-21";
+export const LAST_UPDATED = "2026-06-22";

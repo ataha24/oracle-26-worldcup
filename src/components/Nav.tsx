@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 const LINKS = [
   { href: "/", label: "Forecast" },
+  { href: "/live", label: "Live", live: true },
   { href: "/groups", label: "Groups" },
   { href: "/bracket", label: "Bracket" },
   { href: "/predictor", label: "Predictor" },
@@ -43,6 +44,9 @@ export function Nav({
                     : "text-mute hover:text-white hover:bg-white/5"
                 }`}
               >
+                {l.live && (
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-rose animate-pulse mr-1.5 align-middle" />
+                )}
                 {l.label}
               </Link>
             );
@@ -69,6 +73,9 @@ export function Nav({
                 active ? "text-white bg-white/8" : "text-mute"
               }`}
             >
+              {l.live && (
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-rose animate-pulse mr-1 align-middle" />
+              )}
               {l.label}
             </Link>
           );

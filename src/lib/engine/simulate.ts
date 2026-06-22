@@ -1,7 +1,13 @@
 import type { SimulationResult, Team, TeamTournamentOdds } from "@/lib/types";
 import { TEAMS, getTeam } from "@/lib/data/teams";
 import { GROUPS } from "@/lib/data/groups";
-import { RESULTS, LIVE_BY_PAIR, pairKey } from "@/lib/data/results";
+import {
+  RESULTS,
+  LIVE,
+  pairKey,
+  type PlayedMatch,
+  type LiveMatch,
+} from "@/lib/data/results";
 import { BRACKET } from "@/lib/data/bracket";
 import { groupPairings } from "./standings";
 import { expectedGoals, predictMatch } from "./match";
@@ -55,8 +61,13 @@ function sampleScore(a: Team, b: Team, rnd: () => number): [number, number] {
 }
 
 /** sample a still-to-finish pairing: continue a live match, else simulate fresh */
-function samplePairing(aId: string, bId: string, rnd: () => number): [number, number] {
-  const live = LIVE_BY_PAIR[pairKey(aId, bId)];
+function samplePairing(
+  aId: string,
+  bId: string,
+  rnd: () => number,
+  liveByPair: Record<string, LiveMatch>,
+): [number, number] {
+  const live = liveByPair[pairKey(aId, bId)];
   const a = getTeam(aId);
   const b = getTeam(bId);
   if (!live) return sampleScore(a, b, rnd);
@@ -92,13 +103,13 @@ interface GroupPlan {
   remaining: [string, string][];
 }
 
-function buildGroupPlans(): GroupPlan[] {
+function buildGroupPlans(results: PlayedMatch[]): GroupPlan[] {
   return GROUPS.map((g) => {
     const base: Record<string, Standing> = Object.fromEntries(
       g.teamIds.map((id) => [id, { teamId: id, pts: 0, gf: 0, ga: 0, gd: 0 }]),
     );
     const playedPairs = new Set<string>();
-    for (const m of RESULTS) {
+    for (const m of results) {
       if (m.groupId !== g.id) continue;
       const h = base[m.home];
       const a = base[m.away];
@@ -116,7 +127,7 @@ function buildGroupPlans(): GroupPlan[] {
   });
 }
 
-const GROUP_PLANS = buildGroupPlans();
+const DEFAULT_PLANS = buildGroupPlans(RESULTS);
 
 function rank(rows: Standing[], rnd: () => number): Standing[] {
   return rows
@@ -174,7 +185,21 @@ interface Tally {
   pointsSum: number;
 }
 
-export function simulate(iterations = 20000, seed = 73104): SimulationResult {
+export interface SimOverride {
+  results?: PlayedMatch[];
+  live?: LiveMatch[];
+}
+
+export function simulate(
+  iterations = 20000,
+  seed = 73104,
+  override?: SimOverride,
+): SimulationResult {
+  const plans = override?.results ? buildGroupPlans(override.results) : DEFAULT_PLANS;
+  const liveList = override?.live ?? LIVE;
+  const liveByPair: Record<string, LiveMatch> = Object.fromEntries(
+    liveList.map((m) => [pairKey(m.home, m.away), m]),
+  );
   const rnd = makeRng(seed);
   const tally: Record<string, Tally> = {};
   for (const t of TEAMS)
@@ -188,14 +213,14 @@ export function simulate(iterations = 20000, seed = 73104): SimulationResult {
     const thirds: { teamId: string; groupId: string; s: Standing }[] = [];
 
     // ---- finish the group stage ----
-    for (const plan of GROUP_PLANS) {
+    for (const plan of plans) {
       const rows: Record<string, Standing> = {};
       for (const id of Object.keys(plan.base)) {
         const b = plan.base[id];
         rows[id] = { teamId: id, pts: b.pts, gf: b.gf, ga: b.ga, gd: 0 };
       }
       for (const [aId, bId] of plan.remaining) {
-        const [ga, gb] = samplePairing(aId, bId, rnd);
+        const [ga, gb] = samplePairing(aId, bId, rnd, liveByPair);
         const A = rows[aId];
         const B = rows[bId];
         A.gf += ga; A.ga += gb;

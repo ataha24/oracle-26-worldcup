@@ -46,7 +46,7 @@ export async function GET() {
       const h = getTeam(g.homeId);
       const a = getTeam(g.awayId);
       const o = liveOutcome(h, a, { hg: g.hg, ag: g.ag, minute: g.minute }, { neutral: !(h.host || a.host) });
-      liveGames.push({ ...gameView(g), wdl: { h: o.pHomeWin, d: o.pDraw, a: o.pAwayWin } });
+      liveGames.push({ ...gameView(g), eventId: g.eventId, wdl: { h: o.pHomeWin, d: o.pDraw, a: o.pAwayWin } });
     }
   }
 

@@ -5,11 +5,13 @@ import { RANKED_ODDS } from "@/lib/forecast";
 import { getTeam } from "@/lib/data/teams";
 import { pct } from "@/lib/format";
 import { SectionTitle } from "@/components/bits";
+import { MatchBreakdown } from "@/components/MatchBreakdown";
 
 interface LiveGame {
   groupId: string;
   home: string; homeFlag: string; away: string; awayFlag: string;
   hg: number; ag: number; minute: number; detail: string;
+  eventId?: string;
   wdl?: { h: number; d: number; a: number };
 }
 interface TitleRow {
@@ -33,6 +35,7 @@ export default function LivePage() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [auto, setAuto] = useState(false);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const refresh = useCallback(async () => {
@@ -141,6 +144,19 @@ export default function LivePage() {
                     <span className="flex items-center justify-center bg-white/15 text-white" style={{ width: `${g.wdl.d * 100}%` }}>{g.wdl.d > 0.16 ? Math.round(g.wdl.d * 100) : ""}</span>
                     <span className="flex items-center justify-center" style={{ width: `${g.wdl.a * 100}%`, background: "var(--color-cyan)" }}>{g.wdl.a > 0.16 ? Math.round(g.wdl.a * 100) : ""}</span>
                   </div>
+                )}
+                {g.eventId && (
+                  <>
+                    <button
+                      onClick={() => setExpanded((m) => ({ ...m, [g.eventId!]: !m[g.eventId!] }))}
+                      className="mt-2.5 w-full text-[11px] text-emerald font-semibold hover:brightness-110 transition"
+                    >
+                      {expanded[g.eventId] ? "Hide full match stats ▴" : "Show full match stats ▾"}
+                    </button>
+                    {expanded[g.eventId] && (
+                      <MatchBreakdown eventId={g.eventId} homeFlag={g.homeFlag} awayFlag={g.awayFlag} />
+                    )}
+                  </>
                 )}
               </div>
             ))}

@@ -25,6 +25,101 @@ export async function GET(req: Request) {
   const pct = Math.max(1, Math.min(99, parseInt(sp.get("pct") ?? "90", 10) || 90));
   const accent = ACCENT[pKey] ?? "#10d989";
   const { rarity, tier } = rarityFor(pKey, t2);
+  const format = sp.get("format");
+
+  // ---- Instagram Story (vertical 1080×1920) ----
+  if (format === "story") {
+    return new ImageResponse(
+      (
+        <div
+          style={{
+            width: "1080px",
+            height: "1920px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            padding: "120px 80px",
+            color: "#eef1f7",
+            fontFamily: "sans-serif",
+            backgroundColor: "#05070d",
+            backgroundImage: `radial-gradient(900px 700px at 80% 0%, ${accent}38, transparent 60%), radial-gradient(800px 700px at 10% 100%, ${accent}28, transparent 60%)`,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "16px", fontSize: "42px", fontWeight: 800 }}>
+            <span>🔮</span>
+            <span style={{ color: "#b9f5dc" }}>ORACLE&apos;26</span>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "14px",
+              marginTop: "70px",
+              fontSize: "38px",
+              fontWeight: 800,
+              letterSpacing: "0.14em",
+              color: tier.color,
+              padding: "14px 36px",
+              borderRadius: "9999px",
+              border: `3px solid ${tier.color}66`,
+              backgroundColor: `${tier.color}1a`,
+            }}
+          >
+            <span>{tier.emoji}</span>
+            <span>{tier.name}</span>
+          </div>
+
+          <div style={{ display: "flex", fontSize: "34px", color: accent, fontWeight: 700, letterSpacing: "0.2em", marginTop: "90px" }}>
+            MY FAN PERSONALITY
+          </div>
+          <div style={{ display: "flex", fontSize: "200px", lineHeight: "1", marginTop: "24px" }}>{persona.emoji}</div>
+          <div style={{ display: "flex", fontSize: "104px", fontWeight: 800, lineHeight: "1.05", color: "#fff", marginTop: "24px", textAlign: "center" }}>
+            {persona.name}
+          </div>
+          <div style={{ display: "flex", fontSize: "40px", color: "#c7cede", marginTop: "36px", textAlign: "center", maxWidth: "860px" }}>
+            {ident.desc}
+          </div>
+
+          <div style={{ display: "flex", gap: "20px", marginTop: "48px" }}>
+            {traits.map((t, i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  padding: "16px 36px",
+                  borderRadius: "9999px",
+                  border: `3px solid ${accent}66`,
+                  backgroundColor: `${accent}1a`,
+                  fontSize: "40px",
+                  fontWeight: 700,
+                  color: accent,
+                }}
+              >
+                {t}
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: "auto" }}>
+            <div style={{ display: "flex", fontSize: "150px", lineHeight: "1" }}>{team.flag}</div>
+            <div style={{ display: "flex", fontSize: "56px", fontWeight: 800, marginTop: "16px" }}>{team.name}</div>
+            <div style={{ display: "flex", fontSize: "36px", color: "#8a94ad", marginTop: "8px" }}>
+              spirit team · {pct}% match · only {rarity}% are this type
+            </div>
+          </div>
+
+          <div style={{ display: "flex", fontSize: "40px", color: "#fff", fontWeight: 700, marginTop: "70px" }}>
+            What&apos;s your Fan ID?
+          </div>
+          <div style={{ display: "flex", fontSize: "32px", color: accent, marginTop: "10px" }}>
+            oracle-26-worldcup.vercel.app/soulmate
+          </div>
+        </div>
+      ),
+      { width: 1080, height: 1920, emoji: "twemoji" },
+    );
+  }
 
   return new ImageResponse(
     (

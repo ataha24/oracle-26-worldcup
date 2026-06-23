@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getTeam, TEAMS } from "@/lib/data/teams";
 import { matchTeams, rankTeams, AXES, type Axis, type Vibe } from "@/lib/match/vibes";
 import { fanIdentityFromAxes } from "@/lib/match/persona";
 import { QUESTIONS, leanFromAnswers, type Option } from "@/lib/match/quiz";
 import { FanReport, encodeVibe, AXIS_COLOR, AXIS_LABEL } from "@/components/FanReport";
 import { FanTrends } from "@/components/FanTrends";
+import { ShareBar } from "@/components/ShareBar";
 import { shareMessage } from "@/lib/data/shareCopy";
 
 // short, fun reaction shown the instant you pick — by the option's dominant trait
@@ -39,6 +40,15 @@ export default function SoulmatePage() {
   const userVibe = useMemo<Vibe>(() => leanFromAnswers(answers), [answers]);
   const matches = useMemo(() => (phase === "result" ? matchTeams(userVibe, 3) : []), [phase, userVibe]);
 
+  // social proof: how many fans have found their team (live, if storage is on)
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    fetch("/api/trends", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => { if (d?.configured && d.trends?.total) setCount(d.trends.total); })
+      .catch(() => {});
+  }, []);
+
   function answer(i: number, opt: Option) {
     const next = [...answers];
     next[i] = opt;
@@ -55,7 +65,7 @@ export default function SoulmatePage() {
 
   return (
     <div className="max-w-3xl mx-auto px-5 py-12 min-h-[80vh] flex flex-col justify-center">
-      {phase === "intro" && <Intro onStart={() => setPhase("quiz")} />}
+      {phase === "intro" && <Intro onStart={() => setPhase("quiz")} count={count} />}
 
       {phase === "quiz" && step < QUESTIONS.length && (
         <QuestionCard
@@ -76,9 +86,15 @@ export default function SoulmatePage() {
   );
 }
 
-function Intro({ onStart }: { onStart: () => void }) {
+function Intro({ onStart, count }: { onStart: () => void; count: number }) {
   return (
     <div className="text-center rise">
+      {count > 0 && (
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-emerald/30 bg-emerald/10 text-emerald text-xs font-semibold mb-4">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald animate-pulse" />
+          {count.toLocaleString()} fans have found their team
+        </div>
+      )}
       <div className="text-6xl mb-4">🔮💘</div>
       <div className="text-xs font-semibold tracking-[0.25em] uppercase text-emerald mb-2">
         The Oracle&apos;s Matchmaker
@@ -287,29 +303,15 @@ function Result({
   const params = `team=${top.teamId}&persona=${me.key}&t2=${me.secondKey}&pct=${top.pctMatch}&v=${encodeVibe(userVibe)}`;
   const cardUrl = `/api/card?${params}`;
   const shareUrl = `/soulmate/share?${params}`;
-
-  async function share() {
-    const url = typeof window !== "undefined" ? window.location.origin + shareUrl : shareUrl;
-    const text = shareMessage({
-      personaName: me.name,
-      personaEmoji: me.emoji,
-      tierName: me.tier.name,
-      tierEmoji: me.tier.emoji,
-      rarity: me.rarity,
-      teamName: team.name,
-      teamFlag: team.flag,
-    });
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: "My World Cup Fan Report", text, url });
-      } else {
-        await navigator.clipboard.writeText(`${text} ${url}`);
-        alert("Link copied — go paste it and brag.");
-      }
-    } catch {
-      /* user cancelled share */
-    }
-  }
+  const shareText = shareMessage({
+    personaName: me.name,
+    personaEmoji: me.emoji,
+    tierName: me.tier.name,
+    tierEmoji: me.tier.emoji,
+    rarity: me.rarity,
+    teamName: team.name,
+    teamFlag: team.flag,
+  });
 
   return (
     <div className="rise">
@@ -334,25 +336,14 @@ function Result({
 
       <FanTrends teamId={top.teamId} persona={me.key} tier={me.tier.name} />
 
-      <div className="flex flex-wrap gap-3 mt-6 justify-center">
-        <button onClick={share} className="px-5 py-2.5 rounded-xl bg-emerald text-black font-bold text-sm hover:brightness-110 transition">
-          Share my Fan ID
-        </button>
-        <a
-          href={cardUrl}
-          download={`my-fan-id-${me.key}.png`}
-          className="px-5 py-2.5 rounded-xl border border-emerald/40 text-emerald font-semibold text-sm hover:bg-emerald/10 transition"
-        >
-          ⬇ Download my card
-        </a>
+      <ShareBar path={shareUrl} text={shareText} cardUrl={cardUrl} storyUrl={`${cardUrl}&format=story`} />
+
+      <div className="flex flex-wrap gap-3 mt-4 justify-center">
         <button onClick={onRestart} className="px-5 py-2.5 rounded-xl border border-line text-sm hover:text-white hover:border-white/30 transition">
           Take it again
         </button>
-      </div>
-
-      <div className="text-center mt-4">
-        <a href="/how-it-works" className="text-xs text-mute hover:text-emerald transition">
-          🤓 Wait, how did you match me? See the math →
+        <a href="/how-it-works" className="px-5 py-2.5 rounded-xl border border-line text-sm text-mute hover:text-emerald hover:border-emerald/40 transition">
+          🤓 See the math
         </a>
       </div>
     </div>

@@ -16,11 +16,21 @@ const KEY = {
 
 const TIERS = ["LEGENDARY", "EPIC", "RARE", "COMMON"];
 
+// Find a credential by env-var-name SUFFIX, so it works no matter what prefix the
+// Vercel/Upstash integration applied (e.g. UPSTASH_REDIS_REST_KV_REST_API_URL).
+function pickEnv(...patterns: RegExp[]): string | undefined {
+  for (const [k, v] of Object.entries(process.env)) {
+    if (v && patterns.some((rx) => rx.test(k))) return v;
+  }
+  return undefined;
+}
+
 let cached: Redis | null | undefined;
 function getRedis(): Redis | null {
   if (cached !== undefined) return cached;
-  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+  const url = pickEnv(/(^|_)UPSTASH_REDIS_REST_URL$/, /(^|_)KV_REST_API_URL$/);
+  // read-write token only — the regex deliberately excludes *_READ_ONLY_TOKEN
+  const token = pickEnv(/(^|_)UPSTASH_REDIS_REST_TOKEN$/, /(^|_)KV_REST_API_TOKEN$/);
   cached = url && token ? new Redis({ url, token }) : null;
   return cached;
 }

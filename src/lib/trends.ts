@@ -53,6 +53,14 @@ export async function recordResult(teamId: string, persona: string, tier: string
   return true;
 }
 
+/** wipe all aggregate counters (used once to clear verification test data) */
+export async function resetTrends(): Promise<boolean> {
+  const r = getRedis();
+  if (!r) return false;
+  await r.del(KEY.total, KEY.teams, KEY.persona, KEY.tier);
+  return true;
+}
+
 export interface Trends {
   total: number;
   teams: { id: string; name: string; flag: string; count: number; pct: number }[];

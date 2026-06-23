@@ -6,6 +6,7 @@ import { matchTeams, rankTeams, AXES, type Axis, type Vibe } from "@/lib/match/v
 import { fanIdentityFromAxes } from "@/lib/match/persona";
 import { QUESTIONS, leanFromAnswers, type Option } from "@/lib/match/quiz";
 import { FanReport, encodeVibe, AXIS_COLOR, AXIS_LABEL } from "@/components/FanReport";
+import { FanTrends } from "@/components/FanTrends";
 import { shareMessage } from "@/lib/data/shareCopy";
 
 // short, fun reaction shown the instant you pick — by the option's dominant trait
@@ -330,6 +331,8 @@ function Result({
       </div>
 
       <FanReport userVibe={userVibe} />
+
+      <FanTrends teamId={top.teamId} persona={me.key} tier={me.tier.name} />
 
       <div className="flex flex-wrap gap-3 mt-6 justify-center">
         <button onClick={share} className="px-5 py-2.5 rounded-xl bg-emerald text-black font-bold text-sm hover:brightness-110 transition">

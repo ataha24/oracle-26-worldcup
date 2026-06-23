@@ -1,5 +1,5 @@
 // Completed 2026 World Cup group-stage results (final scores), through the
-// matches played up to 2026-06-20. The engine treats these as fixed and
+// matches played up to 2026-06-23. The engine treats these as fixed and
 // simulates everything still to be played. Add new rows here as matches finish.
 // Sources: ESPN / FIFA match schedule & results.
 
@@ -61,18 +61,22 @@ export const RESULTS: PlayedMatch[] = [
   { groupId: "H", home: "spain", away: "saudi-arabia", hg: 4, ag: 0, date: "2026-06-21" },
   { groupId: "H", home: "uruguay", away: "cape-verde", hg: 2, ag: 2, date: "2026-06-21" },
 
-  // ---- Group I (one round played) ----
+  // ---- Group I (two rounds played) ----
   { groupId: "I", home: "france", away: "senegal", hg: 3, ag: 1, date: "2026-06-16" },
   { groupId: "I", home: "iraq", away: "norway", hg: 1, ag: 4, date: "2026-06-16" },
+  { groupId: "I", home: "france", away: "iraq", hg: 3, ag: 0, date: "2026-06-22" },
+  { groupId: "I", home: "norway", away: "senegal", hg: 3, ag: 2, date: "2026-06-22" },
 
-  // ---- Group J (two rounds; Jordan–Algeria still to play) ----
+  // ---- Group J (two rounds played) ----
   { groupId: "J", home: "argentina", away: "algeria", hg: 3, ag: 0, date: "2026-06-16" },
   { groupId: "J", home: "austria", away: "jordan", hg: 3, ag: 1, date: "2026-06-16" },
   { groupId: "J", home: "argentina", away: "austria", hg: 2, ag: 0, date: "2026-06-22" },
+  { groupId: "J", home: "jordan", away: "algeria", hg: 1, ag: 2, date: "2026-06-22" },
 
-  // ---- Group K (one round played) ----
+  // ---- Group K (two rounds; Colombia–DR Congo still to play) ----
   { groupId: "K", home: "portugal", away: "dr-congo", hg: 1, ag: 1, date: "2026-06-17" },
   { groupId: "K", home: "uzbekistan", away: "colombia", hg: 1, ag: 3, date: "2026-06-17" },
+  { groupId: "K", home: "portugal", away: "uzbekistan", hg: 5, ag: 0, date: "2026-06-23" },
 
   // ---- Group L (one round played) ----
   { groupId: "L", home: "england", away: "croatia", hg: 4, ag: 2, date: "2026-06-17" },
@@ -111,4 +115,4 @@ export const PLAYED_BY_PAIR: Record<string, PlayedMatch> = Object.fromEntries(
   RESULTS.map((m) => [pairKey(m.home, m.away), m]),
 );
 
-export const LAST_UPDATED = "2026-06-22";
+export const LAST_UPDATED = "2026-06-23";

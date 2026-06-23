@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "forecast": "tsx scripts/generate-forecast.ts",
+    "bracket": "tsx scripts/predict-bracket.ts",
     "calibrate": "tsx scripts/calibrate-match.ts",
     "engine:test": "tsx scripts/test-engine.ts"
   },

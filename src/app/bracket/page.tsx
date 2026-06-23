@@ -2,9 +2,11 @@ import { RANKED_ODDS } from "@/lib/forecast";
 import { getTeam } from "@/lib/data/teams";
 import { pct, heat } from "@/lib/format";
 import { Flag, SectionTitle } from "@/components/bits";
+import { BracketTree } from "@/components/BracketTree";
+import { projectBracket } from "@/lib/engine/bracket-projection";
 import type { TeamTournamentOdds } from "@/lib/types";
 
-export const metadata = { title: "Road to the Final — ORACLE '26" };
+export const metadata = { title: "Predicted Bracket — ORACLE '26" };
 
 const COLS: { key: keyof TeamTournamentOdds; label: string }[] = [
   { key: "pAdvance", label: "R32" },
@@ -17,13 +19,24 @@ const COLS: { key: keyof TeamTournamentOdds; label: string }[] = [
 
 export default function BracketPage() {
   const rows = RANKED_ODDS; // already sorted by title prob
+  const projection = projectBracket();
 
   return (
     <div className="max-w-5xl mx-auto px-5 py-10">
       <SectionTitle
+        kicker="Predicted bracket"
+        title="How the knockouts play out"
+        desc="The model's single most-likely run of the tournament — projected group finishes feed the official 2026 bracket, then every tie from the Round of 32 to the final is played out with a predicted score."
+      />
+
+      <BracketTree projection={projection} />
+
+      <div className="border-t border-line/60 mt-10 pt-10" />
+
+      <SectionTitle
         kicker="Knockout forecast"
         title="The road to MetLife"
-        desc="Every team's probability of surviving each knockout round, computed on the official 2026 bracket (matches 73–104). Because the bracket is a fixed tree, a team's path — not just its strength — shapes these numbers."
+        desc="Every team's probability of surviving each knockout round across 50,000 simulated tournaments. Because the bracket is a fixed tree, a team's path — not just its strength — shapes these numbers."
       />
 
       <div className="card overflow-x-auto">
